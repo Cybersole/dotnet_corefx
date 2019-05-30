@@ -26,6 +26,14 @@ namespace System.Text.Json.Serialization.Tests
         }
 
         [Fact]
+        public static void WriteByteArray()
+        {
+            var input = new byte[] { 0, 1 };
+            string json = JsonSerializer.ToString(input);
+            Assert.Equal($"\"{Convert.ToBase64String(input)}\"", json);
+        }
+
+        [Fact]
         public static void WriteObjectArray()
         {
             string json;

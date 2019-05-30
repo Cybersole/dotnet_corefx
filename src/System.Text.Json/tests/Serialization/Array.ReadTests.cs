@@ -286,6 +286,16 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(1, obj.MyList[0]);
         }
 
+        [Fact]
+        public static void ReadByteArray()
+        {
+            string json = $"\"{Convert.ToBase64String(new byte[] { 1, 2 })}\"";
+            byte[] arr =  JsonSerializer.Parse<byte[]>(json);
+            Assert.Equal(2, arr.Length);
+            Assert.Equal(1, arr[0]);
+            Assert.Equal(2, arr[1]);
+        }
+
         public class ClassWithListButNoSetter
         {
             public List<int> MyList { get; } = new List<int>();

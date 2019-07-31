@@ -39,9 +39,19 @@ namespace System.Text.Json
         // If enumerable, the JsonClassInfo for the element type.
         internal JsonClassInfo ElementClassInfo { get; private set; }
 
+        internal enum InitializingStatus
+        {
+            Started = 0,
+            Exception = 1,
+            Success = 2
+        }
+        internal InitializingStatus Initializing { get; private set; } = InitializingStatus.Started;
+
         public JsonSerializerOptions Options { get; private set; }
 
         public Type Type { get; private set; }
+
+        internal JsonClassInfo() { }
 
         internal void UpdateSortedPropertyCache(ref ReadStackFrame frame)
         {
@@ -66,121 +76,131 @@ namespace System.Text.Json
             frame.PropertyRefCache = null;
         }
 
-        internal JsonClassInfo(Type type, JsonSerializerOptions options)
+        internal void Initialize(Type type, JsonSerializerOptions options)
         {
-            Type = type;
-            Options = options;
-            ClassType = GetClassType(type, options);
-
-            CreateObject = options.MemberAccessorStrategy.CreateConstructor(type);
-
-            // Ignore properties on enumerable.
-            switch (ClassType)
+            try
             {
-                case ClassType.Object:
-                    {
-                        PropertyInfo[] properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                Type = type;
+                Options = options;
+                ClassType = GetClassType(type, options);
 
-                        Dictionary<string, JsonPropertyInfo> cache = CreatePropertyCache(properties.Length);
+                CreateObject = options.MemberAccessorStrategy.CreateConstructor(type);
 
-                        foreach (PropertyInfo propertyInfo in properties)
+                // Ignore properties on enumerable.
+                switch (ClassType)
+                {
+                    case ClassType.Object:
                         {
-                            // Ignore indexers
-                            if (propertyInfo.GetIndexParameters().Length > 0)
-                            {
-                                continue;
-                            }
+                            PropertyInfo[] properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
-                            // For now we only support public getters\setters
-                            if (propertyInfo.GetMethod?.IsPublic == true ||
-                                propertyInfo.SetMethod?.IsPublic == true)
-                            {
-                                JsonPropertyInfo jsonPropertyInfo = AddProperty(propertyInfo.PropertyType, propertyInfo, type, options);
-                                Debug.Assert(jsonPropertyInfo != null);
+                            Dictionary<string, JsonPropertyInfo> cache = CreatePropertyCache(properties.Length);
 
-                                // If the JsonPropertyNameAttribute or naming policy results in collisions, throw an exception.
-                                if (!JsonHelpers.TryAdd(cache, jsonPropertyInfo.NameAsString, jsonPropertyInfo))
+                            foreach (PropertyInfo propertyInfo in properties)
+                            {
+                                // Ignore indexers
+                                if (propertyInfo.GetIndexParameters().Length > 0)
                                 {
-                                    JsonPropertyInfo other = cache[jsonPropertyInfo.NameAsString];
+                                    continue;
+                                }
 
-                                    if (other.ShouldDeserialize == false && other.ShouldSerialize == false)
+                                // For now we only support public getters\setters
+                                if (propertyInfo.GetMethod?.IsPublic == true ||
+                                    propertyInfo.SetMethod?.IsPublic == true)
+                                {
+                                    JsonPropertyInfo jsonPropertyInfo = AddProperty(propertyInfo.PropertyType, propertyInfo, type, options);
+                                    Debug.Assert(jsonPropertyInfo != null);
+
+                                    // If the JsonPropertyNameAttribute or naming policy results in collisions, throw an exception.
+                                    if (!JsonHelpers.TryAdd(cache, jsonPropertyInfo.NameAsString, jsonPropertyInfo))
                                     {
-                                        // Overwrite the one just added since it has [JsonIgnore].
-                                        cache[jsonPropertyInfo.NameAsString] = jsonPropertyInfo;
+                                        JsonPropertyInfo other = cache[jsonPropertyInfo.NameAsString];
+
+                                        if (other.ShouldDeserialize == false && other.ShouldSerialize == false)
+                                        {
+                                            // Overwrite the one just added since it has [JsonIgnore].
+                                            cache[jsonPropertyInfo.NameAsString] = jsonPropertyInfo;
+                                        }
+                                        else if (jsonPropertyInfo.ShouldDeserialize == true || jsonPropertyInfo.ShouldSerialize == true)
+                                        {
+                                            ThrowHelper.ThrowInvalidOperationException_SerializerPropertyNameConflict(this, jsonPropertyInfo);
+                                        }
+                                        // else ignore jsonPropertyInfo since it has [JsonIgnore].
                                     }
-                                    else if (jsonPropertyInfo.ShouldDeserialize == true || jsonPropertyInfo.ShouldSerialize == true)
-                                    {
-                                        ThrowHelper.ThrowInvalidOperationException_SerializerPropertyNameConflict(this, jsonPropertyInfo);
-                                    }
-                                    // else ignore jsonPropertyInfo since it has [JsonIgnore].
                                 }
                             }
-                        }
 
-                        if (DetermineExtensionDataProperty(cache))
+                            if (DetermineExtensionDataProperty(cache))
+                            {
+                                // Remove from cache since it is handled independently.
+                                cache.Remove(DataExtensionProperty.NameAsString);
+                            }
+
+                            // Set as a unit to avoid concurrency issues.
+                            PropertyCache = cache;
+                        }
+                        break;
+                    case ClassType.Enumerable:
+                    case ClassType.Dictionary:
                         {
-                            // Remove from cache since it is handled independently.
-                            cache.Remove(DataExtensionProperty.NameAsString);
+                            // Add a single property that maps to the class type so we can have policies applied.
+                            AddPolicyProperty(type, options);
+
+                            Type objectType;
+                            if (IsNativelySupportedCollection(type))
+                            {
+                                // Use the type from the property policy to get any late-bound concrete types (from an interface like IDictionary).
+                                objectType = PolicyProperty.RuntimePropertyType;
+                            }
+                            else
+                            {
+                                // We need to create the declared instance for types implementing natively supported collections.
+                                objectType = PolicyProperty.DeclaredPropertyType;
+                            }
+
+                            CreateObject = options.MemberAccessorStrategy.CreateConstructor(objectType);
+
+                            // Create a ClassInfo that maps to the element type which is used for (de)serialization and policies.
+                            Type elementType = GetElementType(type, parentType: null, memberInfo: null, options: options);
+                            ElementClassInfo = options.GetOrAddClass(elementType);
                         }
-
-                        // Set as a unit to avoid concurrency issues.
-                        PropertyCache = cache;
-                    }
-                    break;
-                case ClassType.Enumerable:
-                case ClassType.Dictionary:
-                    {
-                        // Add a single property that maps to the class type so we can have policies applied.
-                         AddPolicyProperty(type, options);
-
-                        Type objectType;
-                        if (IsNativelySupportedCollection(type))
+                        break;
+                    case ClassType.IDictionaryConstructible:
                         {
-                            // Use the type from the property policy to get any late-bound concrete types (from an interface like IDictionary).
-                            objectType = PolicyProperty.RuntimePropertyType;
-                        }
-                        else
-                        {
-                            // We need to create the declared instance for types implementing natively supported collections.
-                            objectType = PolicyProperty.DeclaredPropertyType;
-                        }
+                            // Add a single property that maps to the class type so we can have policies applied.
+                            AddPolicyProperty(type, options);
 
-                        CreateObject = options.MemberAccessorStrategy.CreateConstructor(objectType);
+                            Type elementType = GetElementType(type, parentType: null, memberInfo: null, options: options);
 
-                        // Create a ClassInfo that maps to the element type which is used for (de)serialization and policies.
-                        Type elementType = GetElementType(type, parentType: null, memberInfo: null, options: options);
-                        ElementClassInfo = options.GetOrAddClass(elementType);
-                    }
-                    break;
-                case ClassType.IDictionaryConstructible:
-                    {
+                            CreateConcreteDictionary = options.MemberAccessorStrategy.CreateConstructor(
+                                typeof(Dictionary<,>).MakeGenericType(typeof(string), elementType));
+
+                            CreateObject = options.MemberAccessorStrategy.CreateConstructor(PolicyProperty.DeclaredPropertyType);
+
+                            // Create a ClassInfo that maps to the element type which is used for (de)serialization and policies.
+                            ElementClassInfo = options.GetOrAddClass(elementType);
+                        }
+                        break;
+                    case ClassType.Value:
                         // Add a single property that maps to the class type so we can have policies applied.
                         AddPolicyProperty(type, options);
-
-                        Type elementType = GetElementType(type, parentType: null, memberInfo: null, options: options);
-
-                       CreateConcreteDictionary = options.MemberAccessorStrategy.CreateConstructor(
-                           typeof(Dictionary<,>).MakeGenericType(typeof(string), elementType));
-
-                        CreateObject = options.MemberAccessorStrategy.CreateConstructor(PolicyProperty.DeclaredPropertyType);
-
-                        // Create a ClassInfo that maps to the element type which is used for (de)serialization and policies.
-                        ElementClassInfo = options.GetOrAddClass(elementType);
-                    }
-                    break;
-                case ClassType.Value:
-                    // Add a single property that maps to the class type so we can have policies applied.
-                    AddPolicyProperty(type, options);
-                    break;
-                case ClassType.Unknown:
-                    // Add a single property that maps to the class type so we can have policies applied.
-                    AddPolicyProperty(type, options);
-                    PropertyCache = new Dictionary<string, JsonPropertyInfo>();
-                    break;
-                default:
-                    Debug.Fail($"Unexpected class type: {ClassType}");
-                    break;
+                        break;
+                    case ClassType.Unknown:
+                        // Add a single property that maps to the class type so we can have policies applied.
+                        AddPolicyProperty(type, options);
+                        PropertyCache = new Dictionary<string, JsonPropertyInfo>();
+                        break;
+                    default:
+                        Debug.Fail($"Unexpected class type: {ClassType}");
+                        break;
+                }
             }
+            catch
+            {
+                Initializing = InitializingStatus.Exception;
+                throw;
+            }
+
+            Initializing = InitializingStatus.Success;
         }
 
         private bool DetermineExtensionDataProperty(Dictionary<string, JsonPropertyInfo> cache)

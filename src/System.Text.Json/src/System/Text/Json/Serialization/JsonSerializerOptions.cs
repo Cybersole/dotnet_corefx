@@ -321,9 +321,46 @@ namespace System.Text.Json
             _haveTypesBeenCreated = true;
 
             // todo: for performance and reduced instances, consider using the converters and JsonClassInfo from s_defaultOptions by cloning (or reference directly if no changes).
+
             if (!_classes.TryGetValue(classType, out JsonClassInfo result))
             {
-                result = _classes.GetOrAdd(classType, new JsonClassInfo(classType, this));
+                JsonClassInfo jsonClassInfo = new JsonClassInfo();
+
+                // Lock to prevent other threads from using a partial JsonClassInfo that is still being initialized.
+                lock (jsonClassInfo)
+                {
+                    // Add the item before initializing to support circular type references without creating an infinite loop.
+                    result = _classes.GetOrAdd(classType, jsonClassInfo);
+
+                    if (result == jsonClassInfo)
+                    {
+                        jsonClassInfo.Initialize(classType, this);
+                        Debug.Assert(jsonClassInfo.Initializing == JsonClassInfo.InitializingStatus.Success);
+                        return jsonClassInfo;
+                    }
+                }
+            }
+
+            if (result.Initializing == JsonClassInfo.InitializingStatus.Success)
+            {
+                return result;
+            }
+
+            if (result.Initializing == JsonClassInfo.InitializingStatus.Started)
+            {
+                // This code path will be hit in two cases:
+                //  1 - When a type that is referenced cyclically is being initialized (on the same thread).
+                //  2 - When another thread starting initializing a type but it has not yet finished.
+                // We don't differentiate between these two cases for performance since the resulting JsonClassInfo is cached.
+
+                // For case 2 above (JsonClassInfo is being initialized on a different thread) this will block until it is finished initializing.
+                lock (result) { }
+            }
+
+            if (result.Initializing == JsonClassInfo.InitializingStatus.Exception)
+            {
+                // We need to emulate the same exception.
+                result.Initialize(classType, this);
             }
 
             return result;

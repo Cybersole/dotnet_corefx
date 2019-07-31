@@ -3,6 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace System.Text.Json.Serialization.Tests
@@ -114,6 +117,46 @@ namespace System.Text.Json.Serialization.Tests
         public class TestClassWithArrayOfElementsOfTheSameClass
         {
             public TestClassWithArrayOfElementsOfTheSameClass[] Array { get; set; }
+        }
+
+        public class CycleRoot
+        {
+            public Child1 Child1 { get; set; }
+        }
+
+        public class Child1
+        {
+            public IList<Child2> Child2List { get; set; } = new List<Child2>();
+            public Child2 Child2 { get; set; }
+        }
+
+        public class Child2
+        {
+            public Child1 Child1 { get; set; }
+            public IList<Child1> Child1List { get; set; } = new List<Child1>();
+        }
+
+        [Fact]
+        public static void MultiClassCycle()
+        {
+            CycleRoot root = new CycleRoot();
+            root.Child1 = new Child1();
+            root.Child1.Child2List.Add(new Child2());
+            root.Child1.Child2 = new Child2();
+            root.Child1.Child2.Child1 = new Child1();
+
+            // A cycle in just Types (not data) is allowed.
+            string json = JsonSerializer.Serialize(root);
+
+            root = JsonSerializer.Deserialize<CycleRoot>(json);
+            Assert.NotNull(root.Child1);
+            Assert.NotNull(root.Child1.Child2List[0]);
+            Assert.NotNull(root.Child1.Child2);
+            Assert.NotNull(root.Child1.Child2.Child1);
+
+            // Round-trip
+            string jsonRoundTrip = JsonSerializer.Serialize(root);
+            Assert.Equal(json, jsonRoundTrip);
         }
     }
 }

@@ -311,9 +311,6 @@ namespace System.Text.Json
 
         public bool IsPropertyPolicy { get; protected set; }
 
-        // The name from a Json value. This is cached for performance on first deserialize.
-        public byte[] JsonPropertyName { get; set; }
-
         // The name of the property with any casing policy or the name specified from JsonPropertyNameAttribute.
         public byte[] Name { get; private set; }
         public string NameAsString { get; private set; }

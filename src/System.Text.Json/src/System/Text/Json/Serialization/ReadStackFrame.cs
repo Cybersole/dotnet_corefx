@@ -20,9 +20,6 @@ namespace System.Text.Json
         // Support Dictionary keys.
         public string KeyName;
 
-        // Support JSON Path on exceptions.
-        public byte[] JsonPropertyName;
-
         // Current property values.
         public JsonPropertyInfo JsonPropertyInfo;
 
@@ -133,7 +130,6 @@ namespace System.Text.Json
             JsonPropertyInfo = null;
             TempEnumerableValues = null;
             TempDictionaryValues = null;
-            JsonPropertyName = null;
             KeyName = null;
         }
 

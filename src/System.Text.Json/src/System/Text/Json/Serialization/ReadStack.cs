@@ -73,7 +73,7 @@ namespace System.Text.Json
         private void AppendStackFrame(StringBuilder sb, in ReadStackFrame frame)
         {
             // Append the property name.
-            string propertyName = GetPropertyName(frame);
+            string propertyName = frame.JsonPropertyInfo?.NameAsString;
             AppendPropertyName(sb, propertyName);
 
             if (frame.JsonClassInfo != null)
@@ -118,29 +118,6 @@ namespace System.Text.Json
                     sb.Append(propertyName);
                 }
             }
-        }
-
-        private string GetPropertyName(in ReadStackFrame frame)
-        {
-            // Attempt to get the JSON property name from the frame.
-            byte[] utf8PropertyName = frame.JsonPropertyName;
-            if (utf8PropertyName == null)
-            {
-                // Attempt to get the JSON property name from the JsonPropertyInfo.
-                utf8PropertyName = frame.JsonPropertyInfo?.JsonPropertyName;
-            }
-
-            string propertyName;
-            if (utf8PropertyName != null)
-            {
-                propertyName = JsonHelpers.Utf8GetString(utf8PropertyName);
-            }
-            else
-            {
-                propertyName = null;
-            }
-
-            return propertyName;
         }
 
         /// <summary>

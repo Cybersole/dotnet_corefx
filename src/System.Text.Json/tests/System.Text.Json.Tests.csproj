@@ -44,6 +44,7 @@
     <Compile Include="Serialization\CustomConverterTests.Enum.cs" />
     <Compile Include="Serialization\CustomConverterTests.Exceptions.cs" />
     <Compile Include="Serialization\CustomConverterTests.Int32.cs" />
+    <Compile Include="Serialization\CustomConverterTests.ISerializable.cs" />
     <Compile Include="Serialization\CustomConverterTests.List.cs" />
     <Compile Include="Serialization\CustomConverterTests.NullValueType.cs" />
     <Compile Include="Serialization\CustomConverterTests.Object.cs" />
@@ -51,6 +52,7 @@
     <Compile Include="Serialization\CustomConverterTests.Polymorphic.cs" />
     <Compile Include="Serialization\CustomConverterTests.ReadAhead.cs" />
     <Compile Include="Serialization\CustomConverterTests.Callback.cs" />
+    <Compile Include="Serialization\CustomConverterTests.TimeSpan.cs" />
     <Compile Include="Serialization\CyclicTests.cs" />
     <Compile Include="Serialization\DictionaryTests.cs" />
     <Compile Include="Serialization\DictionaryTests.KeyPolicy.cs" />

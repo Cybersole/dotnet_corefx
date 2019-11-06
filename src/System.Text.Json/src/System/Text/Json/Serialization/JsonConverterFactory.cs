@@ -19,6 +19,17 @@ namespace System.Text.Json.Serialization
         /// </summary>
         protected JsonConverterFactory() { }
 
+        internal override sealed ClassType ClassType
+        {
+            get
+            {
+                return ClassType.Invalid;
+            }
+        }
+
+        internal override sealed bool ConvertNullValue => throw new InvalidOperationException("todo");
+
+
         internal JsonConverter GetConverterInternal(Type typeToConvert, JsonSerializerOptions options)
         {
             Debug.Assert(CanConvert(typeToConvert));
@@ -34,5 +45,7 @@ namespace System.Text.Json.Serialization
         /// An instance of a <see cref="JsonConverter{T}"/> where T is compatible with <paramref name="typeToConvert"/>.
         /// </returns>
         public abstract JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options);
+
+        internal override sealed Type TypeToConvert => null;
     }
 }

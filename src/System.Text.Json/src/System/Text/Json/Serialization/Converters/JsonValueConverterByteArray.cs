@@ -8,6 +8,11 @@ namespace System.Text.Json.Serialization.Converters
     {
         public override byte[] Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
+            if (reader.TokenType == JsonTokenType.Null)
+            {
+                return null;
+            }
+
             return reader.GetBytesFromBase64();
         }
 

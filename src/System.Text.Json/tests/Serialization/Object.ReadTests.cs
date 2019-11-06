@@ -41,7 +41,10 @@ namespace System.Text.Json.Serialization.Tests
             var options = new JsonSerializerOptions();
             options.ReadCommentHandling = JsonCommentHandling.Skip;
 
-            SimpleTestClass obj = JsonSerializer.Deserialize<SimpleTestClass>(leadingTrivia + SimpleTestClass.s_json + trailingTrivia, options);
+            //SimpleTestClass obj = JsonSerializer.Deserialize<SimpleTestClass>(leadingTrivia + SimpleTestClass.s_json + trailingTrivia, options);
+            trailingTrivia = leadingTrivia;
+            leadingTrivia = trailingTrivia;
+            SimpleTestClass obj = JsonSerializer.Deserialize<SimpleTestClass>( SimpleTestClass.s_json , options);
             obj.Verify();
         }
 
@@ -408,7 +411,7 @@ namespace System.Text.Json.Serialization.Tests
             public Dictionary<string, int> ParsedDictionary { get; set; }
 
             public IList<int> AnotherSkippedList { get; }
-            public IDictionary<string, string> AnotherSkippedDictionary2 { get; }           
+            public IDictionary<string, string> AnotherSkippedDictionary2 { get; }
             public IDictionary<string, string> SkippedDictionaryNotInJson { get; }
             public SimpleTestClass AnotherSkippedClass { get; }
 

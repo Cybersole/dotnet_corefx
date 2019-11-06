@@ -8,34 +8,6 @@ namespace System.Text.Json
 {
     public static partial class JsonSerializer
     {
-        private static void GetRuntimeClassInfo(object value, ref JsonClassInfo jsonClassInfo, JsonSerializerOptions options)
-        {
-            if (value != null)
-            {
-                Type runtimeType = value.GetType();
-
-                // Nothing to do for typeof(object)
-                if (runtimeType != typeof(object))
-                {
-                    jsonClassInfo = options.GetOrAddClass(runtimeType);
-                }
-            }
-        }
-
-        private static void GetRuntimePropertyInfo(object value, JsonClassInfo jsonClassInfo, ref JsonPropertyInfo jsonPropertyInfo, JsonSerializerOptions options)
-        {
-            if (value != null)
-            {
-                Type runtimeType = value.GetType();
-
-                // Nothing to do for typeof(object)
-                if (runtimeType != typeof(object))
-                {
-                    jsonPropertyInfo = jsonClassInfo.GetOrAddPolymorphicProperty(jsonPropertyInfo, runtimeType, options);
-                }
-            }
-        }
-
         private static void VerifyValueAndType(object value, Type type)
         {
             if (type == null)
@@ -118,23 +90,23 @@ namespace System.Text.Json
             Debug.Assert(type != null || value == null);
             Debug.Assert(writer != null);
 
-            if (value == null)
+            if (value == null) //todo: needed?
             {
                 writer.WriteNullValue();
             }
             else
             {
-                //  We treat typeof(object) special and allow polymorphic behavior.
+                //  We treat typeof(object) special and allow polymorphic behavior. todo: needed here?
                 if (type == typeof(object))
                 {
                     type = value.GetType();
                 }
 
                 WriteStack state = default;
-                state.Current.Initialize(type, options);
+                state.Current.Initialize(type, options, ref state);
                 state.Current.CurrentValue = value;
 
-                Write(writer, writer.CurrentDepth, flushThreshold: -1, options, ref state);
+                Write(writer, options, ref state);
             }
 
             writer.Flush();

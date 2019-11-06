@@ -10,18 +10,66 @@ namespace System.Text.Json
     [DebuggerDisplay("Path:{PropertyPath()} Current: ClassType.{Current.JsonClassInfo.ClassType}, {Current.JsonClassInfo.Type.Name}")]
     internal struct WriteStack
     {
-        // Fields are used instead of properties to avoid value semantics.
+        // A field is used instead of a property to avoid value semantics.
         public WriteStackFrame Current;
+
+        public int FlushThreshold;
+
         private List<WriteStackFrame> _previous;
         private int _index;
+        private int _continuationCount;
+        private bool _processPushPop;
 
-        public void Push()
+        public WriteStackFrame Top
         {
-            if (_previous == null)
+            get
             {
-                _previous = new List<WriteStackFrame>();
-            }
+                if (_index > 0)
+                {
+                    return _previous[0];
+                }
 
+                return Current;
+            }
+        }
+
+
+        public void Push(JsonPropertyInfo jsonPropertyInfo)
+        {
+            if (_processPushPop)
+            {
+                if (_previous == null)
+                {
+                    _previous = new List<WriteStackFrame>();
+                }
+
+
+                if (_continuationCount > 0)
+                {
+                    // A continuation, adjust the index.
+                    Current = _previous[_index++];
+                    _continuationCount--;
+                }
+                else
+                {
+                    AddCurrent();
+
+                    Current.Reset();
+                    JsonClassInfo classInfo = jsonPropertyInfo.RuntimeClassInfo;
+                    Current.JsonClassInfo = classInfo;
+                    Current.JsonPropertyInfo = classInfo.PolicyProperty;
+                    Current.JsonElementPropertyInfo = classInfo.ElementClassInfo?.PolicyProperty;
+                }
+            }
+            else
+            {
+                // Ignore first Push(); Current is used without requiring _previous List.
+                _processPushPop = true;
+            }
+        }
+
+        private void AddCurrent()
+        {
             if (_index == _previous.Count)
             {
                 // Need to allocate a new array element.
@@ -35,34 +83,38 @@ namespace System.Text.Json
                 _previous[_index] = Current;
             }
 
-            Current.Reset();
             _index++;
         }
 
-        public void Push(JsonClassInfo nextClassInfo, object nextValue)
+        public void Pop(bool success)
         {
-            Push();
-            Current.JsonClassInfo = nextClassInfo;
-            Current.CurrentValue = nextValue;
+            Debug.Assert(success || _continuationCount == 0);
 
-            ClassType classType = nextClassInfo.ClassType;
-
-            if (classType == ClassType.Enumerable || nextClassInfo.ClassType == ClassType.Dictionary)
+            if (!success && _continuationCount == 0)
             {
-                Current.PopStackOnEndCollection = true;
+                AddCurrent();
+                _continuationCount--;
+
+                Current = _previous[--_index];
+
+                // Reset JsonPropertyInfo for objects where the initial value is the class.
                 Current.JsonPropertyInfo = Current.JsonClassInfo.PolicyProperty;
             }
             else
             {
-                Debug.Assert(nextClassInfo.ClassType == ClassType.Object || nextClassInfo.ClassType == ClassType.Unknown);
-                Current.PopStackOnEndObject = true;
+                if (_index > 0)
+                {
+                    Current = _previous[--_index];
+                }
+                else
+                {
+                    Debug.Assert(_processPushPop);
+#if DEBUG
+                    // Cause an error if we push once too many times.
+                    _processPushPop = false;
+#endif
+                }
             }
-        }
-
-        public void Pop()
-        {
-            Debug.Assert(_index > 0);
-            Current = _previous[--_index];
         }
 
         // Return a property path as a simple JSONPath using dot-notation when possible. When special characters are present, bracket-notation is used:

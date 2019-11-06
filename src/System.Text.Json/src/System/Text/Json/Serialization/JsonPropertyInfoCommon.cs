@@ -13,13 +13,10 @@ namespace System.Text.Json
     /// <summary>
     /// Represents a strongly-typed property to prevent boxing and to create a direct delegate to the getter\setter.
     /// </summary>
-    internal abstract class JsonPropertyInfoCommon<TClass, TDeclaredProperty, TRuntimeProperty, TConverter> : JsonPropertyInfo
+    internal abstract class JsonPropertyInfoCommon<TClass, TDeclaredProperty, TRuntimeProperty, TConverter> : JsonPropertyInfo<TRuntimeProperty>
     {
         public Func<object, TDeclaredProperty> Get { get; private set; }
         public Action<object, TDeclaredProperty> Set { get; private set; }
-
-        public Action<TDeclaredProperty> AddItemToEnumerable { get; private set; }
-
         public JsonConverter<TConverter> Converter { get; internal set; }
 
         public override void Initialize(
@@ -30,7 +27,6 @@ namespace System.Text.Json
             PropertyInfo propertyInfo,
             Type elementType,
             JsonConverter converter,
-            bool treatAsNullable,
             JsonSerializerOptions options)
         {
             base.Initialize(
@@ -41,7 +37,6 @@ namespace System.Text.Json
                 propertyInfo,
                 elementType,
                 converter,
-                treatAsNullable,
                 options);
 
             if (propertyInfo != null)
@@ -76,9 +71,7 @@ namespace System.Text.Json
             }
             set
             {
-                Debug.Assert(Converter == null);
                 Debug.Assert(value is JsonConverter<TConverter>);
-
                 Converter = (JsonConverter<TConverter>)value;
             }
         }
@@ -132,65 +125,6 @@ namespace System.Text.Json
             }
 
             return Options.MemberAccessorStrategy.CreateAddDelegate<TDeclaredProperty>(addMethod, target);
-        }
-
-        public override void AddObjectToEnumerableWithReflection(object addMethodDelegate, object value)
-        {
-            Debug.Assert((_elementPropertyInfo ?? ElementClassInfo.PolicyProperty) != null);
-            (_elementPropertyInfo ?? ElementClassInfo.PolicyProperty).AddObjectToParentEnumerable(addMethodDelegate, value);
-        }
-
-        public override void AddObjectToParentEnumerable(object addMethodDelegate, object value)
-        {
-            ((Action<TDeclaredProperty>)addMethodDelegate)((TDeclaredProperty)value);
-        }
-
-        public override void AddObjectToDictionary(object target, string key, object value)
-        {
-            Debug.Assert((_elementPropertyInfo ?? ElementClassInfo.PolicyProperty) != null);
-            (_elementPropertyInfo ?? ElementClassInfo.PolicyProperty).AddObjectToParentDictionary(target, key, value);
-        }
-
-        public override void AddObjectToParentDictionary(object target, string key, object value)
-        {
-            if (target is IDictionary<string, TDeclaredProperty> genericDict)
-            {
-                Debug.Assert(!genericDict.IsReadOnly);
-                genericDict[key] = (TDeclaredProperty)value;
-            }
-            else
-            {
-                throw ThrowHelper.GetNotSupportedException_SerializationNotSupportedCollection(target.GetType(), parentType: null, memberInfo: null);
-            }
-        }
-
-        public override bool CanPopulateDictionary(object target)
-        {
-            SetPropertyInfoForObjectElement();
-            Debug.Assert((_elementPropertyInfo ?? ElementClassInfo.PolicyProperty) != null);
-            return (_elementPropertyInfo ?? ElementClassInfo.PolicyProperty).ParentDictionaryCanBePopulated(target);
-        }
-
-        public override bool ParentDictionaryCanBePopulated(object target)
-        {
-            if (target is IDictionary<string, TDeclaredProperty> genericDict && !genericDict.IsReadOnly)
-            {
-                return true;
-            }
-            else if (target is IDictionary dict && !dict.IsReadOnly)
-            {
-                Type genericDictType = target.GetType().GetInterface("System.Collections.Generic.IDictionary`2") ??
-                    target.GetType().GetInterface("System.Collections.Generic.IReadOnlyDictionary`2");
-
-                if (genericDictType != null && genericDictType.GetGenericArguments()[0] != typeof(string))
-                {
-                    return false;
-                }
-
-                return true;
-            }
-
-            return false;
         }
 
         public override IList CreateConverterList()

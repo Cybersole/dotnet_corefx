@@ -6,6 +6,8 @@ namespace System.Text.Json.Serialization.Converters
 {
     internal sealed class JsonConverterJsonElement : JsonConverter<JsonElement>
     {
+        internal override bool ConvertNullValue => true;
+
         public override JsonElement Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             using (JsonDocument document = JsonDocument.ParseValue(ref reader))

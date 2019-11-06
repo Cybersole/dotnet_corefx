@@ -5,6 +5,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Converters;
@@ -40,17 +41,24 @@ namespace System.Text.Json
             return converters;
         }
 
+        // Get the list for converters that implement CanConvert().
         private static List<JsonConverter> GetDefaultConverters()
         {
-            const int NumberOfConverters = 2;
+            const int NumberOfConverters = 5;
 
             var converters = new List<JsonConverter>(NumberOfConverters);
 
-            // Use a list for converters that implement CanConvert().
+            // Nullable converter should always be first since it forwards to any nullable type.
+            converters.Add(new JsonValueConverterNullableFactory());
+
             converters.Add(new JsonConverterEnum());
             converters.Add(new JsonKeyValuePairConverter());
 
-            // We will likely add collection converters here in the future.
+            // Enumerable converter should always be next to last since it can convert any IEnumerable.
+            converters.Add(new JsonIEnumerableConverterFactory());
+
+            // Object converter should always be last since it can convert any type.
+            converters.Add(new JsonObjectFactoryConverter());
 
             Debug.Assert(NumberOfConverters == converters.Count);
 
@@ -65,7 +73,7 @@ namespace System.Text.Json
         /// </remarks>
         public IList<JsonConverter> Converters { get; }
 
-        internal JsonConverter DetermineConverterForProperty(Type parentClassType, Type runtimePropertyType, PropertyInfo propertyInfo)
+        internal JsonConverter DetermineConverter(Type parentClassType, Type runtimePropertyType, PropertyInfo propertyInfo)
         {
             JsonConverter converter = null;
 
@@ -155,10 +163,7 @@ namespace System.Text.Json
             if (converter is JsonConverterFactory factory)
             {
                 converter = factory.GetConverterInternal(typeToConvert, this);
-                if (converter == null || converter.TypeToConvert == null)
-                {
-                    throw new ArgumentNullException(nameof(typeToConvert));
-                }
+                // Allow null converters; it means it the factory's CanConvert did not spend the time to detect 100%.
             }
 
             if (converter != null)
@@ -182,6 +187,69 @@ namespace System.Text.Json
             }
 
             return converter;
+        }
+
+        private JsonConverter GetElementConverter(Type type, ref WriteStack state)
+        {
+            JsonPropertyInfo collectionPropertyInfo = state.Current.JsonPropertyInfo;
+            Debug.Assert((collectionPropertyInfo.ClassType & (ClassType.Dictionary | ClassType.Enumerable)) != 0);
+
+            // Use the current property info it is for the correct type.
+            JsonPropertyInfo elementPropertyInfo = state.Current.JsonElementPropertyInfo;
+
+            if (type == null)
+            {
+                // Use the default converter for the null value.
+                type = collectionPropertyInfo.ElementType;
+            }
+
+            if (type != typeof(object) && elementPropertyInfo.RuntimePropertyType != type)
+            {
+                elementPropertyInfo = collectionPropertyInfo.RuntimeClassInfo.GetOrAddPolymorphicProperty(
+                    collectionPropertyInfo,
+                    elementPropertyInfo.DeclaredPropertyType,
+                    type);
+
+                state.Current.JsonElementPropertyInfo = elementPropertyInfo;
+            }
+
+            return elementPropertyInfo.ConverterBase;
+        }
+
+        private JsonConverter GetPropertyConverter(Type type, ref WriteStack state)
+        {
+            JsonPropertyInfo propertyInfo = state.Current.JsonPropertyInfo;
+            Debug.Assert((propertyInfo.ClassType & (ClassType.Dictionary | ClassType.Enumerable)) == 0);
+
+            if (type == null)
+            {
+                // Use the default converter for the null value.
+                type = propertyInfo.DeclaredTypeClassInfo.Type;
+            }
+
+            if (type != typeof(object) && propertyInfo.RuntimePropertyType != type)
+            {
+                propertyInfo = propertyInfo.RuntimeClassInfo.GetOrAddPolymorphicProperty(
+                    propertyInfo,
+                    propertyInfo.DeclaredPropertyType,
+                    type);
+
+                state.Current.JsonPropertyInfo = propertyInfo;
+            }
+
+            return propertyInfo.ConverterBase;
+        }
+
+        internal JsonConverter GetConverter(Type type, ref WriteStack state)
+        {
+            JsonPropertyInfo jsonPropertyInfo = state.Current.JsonPropertyInfo;
+
+            if ((jsonPropertyInfo.ClassType & (ClassType.Dictionary | ClassType.Enumerable)) != 0)
+            {
+                return GetElementConverter(type, ref state);
+            }
+
+            return GetPropertyConverter(type, ref state);
         }
 
         internal bool HasConverter(Type typeToConvert)

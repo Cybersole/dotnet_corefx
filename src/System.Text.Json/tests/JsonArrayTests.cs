@@ -11,7 +11,6 @@ namespace System.Text.Json.Tests
 {
     public static class JsonArrayTests
     {
-
         private static void TestArray<T>(T value1, T value2, Func<JsonArray, T> getter, Func<T, JsonNode> nodeCtor)
         {
             JsonNode value1Node = nodeCtor(value1);

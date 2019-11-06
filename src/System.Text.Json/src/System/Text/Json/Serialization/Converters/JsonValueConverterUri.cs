@@ -8,13 +8,17 @@ namespace System.Text.Json.Serialization.Converters
     {
         public override Uri Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            string uriString = reader.GetString();
-            if (Uri.TryCreate(uriString, UriKind.RelativeOrAbsolute, out Uri value))
+            if (reader.TokenType != JsonTokenType.Null)
             {
-                return value;
+                string uriString = reader.GetString();
+                if (Uri.TryCreate(uriString, UriKind.RelativeOrAbsolute, out Uri value))
+                {
+                    return value;
+                }
+
+                ThrowHelper.ThrowJsonException();
             }
 
-            ThrowHelper.ThrowJsonException();
             return null;
         }
 

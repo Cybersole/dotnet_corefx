@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
@@ -11,81 +10,37 @@ namespace System.Text.Json
 {
     internal struct WriteStackFrame
     {
+        // new state (todo):
+        public bool ProcessedStartToken;
+        public bool ProcessedEndToken;
+        public bool ProcessedPropertyName;
+        public bool ProcessedPropertyValue;
+
         // The object (POCO or IEnumerable) that is being populated.
         public object CurrentValue;
         public JsonClassInfo JsonClassInfo;
+        public JsonPropertyInfo JsonElementPropertyInfo;
 
         // Support Dictionary keys.
         public string KeyName;
 
         // The current IEnumerable or IDictionary.
         public IEnumerator CollectionEnumerator;
-        // Note all bools are kept together for packing:
-        public bool PopStackOnEndCollection;
-
-        // The current object.
-        public bool PopStackOnEndObject;
-        public bool StartObjectWritten;
-        public bool MoveToNextProperty;
 
         // The current property.
         public int PropertyEnumeratorIndex;
-        public ExtensionDataWriteStatus ExtensionDataStatus;
         public JsonPropertyInfo JsonPropertyInfo;
 
-        public void Initialize(Type type, JsonSerializerOptions options)
+        public void Initialize(Type type, JsonSerializerOptions options, ref WriteStack state)
         {
             JsonClassInfo = options.GetOrAddClass(type);
-            if ((JsonClassInfo.ClassType & (ClassType.Value | ClassType.Enumerable | ClassType.Dictionary)) != 0)
-            {
-                JsonPropertyInfo = JsonClassInfo.PolicyProperty;
-            }
-        }
 
-        public void WriteObjectOrArrayStart(ClassType classType, Utf8JsonWriter writer, JsonSerializerOptions options, bool writeNull = false)
-        {
-            if (JsonPropertyInfo?.EscapedName.HasValue == true)
-            {
-                WriteObjectOrArrayStart(classType, JsonPropertyInfo.EscapedName.Value, writer, writeNull);
-            }
-            else if (KeyName != null)
-            {
-                JsonEncodedText propertyName = JsonEncodedText.Encode(KeyName, options.Encoder);
-                WriteObjectOrArrayStart(classType, propertyName, writer, writeNull);
-            }
-            else
-            {
-                Debug.Assert(writeNull == false);
+            // For ClassType.Object, the initial JsonPropertyInfo will be used to obtain the converter for the object.
+            JsonPropertyInfo = JsonClassInfo.PolicyProperty;
 
-                // Write start without a property name.
-                if (classType == ClassType.Object || classType == ClassType.Dictionary)
-                {
-                    writer.WriteStartObject();
-                    StartObjectWritten = true;
-                }
-                else
-                {
-                    Debug.Assert(classType == ClassType.Enumerable);
-                    writer.WriteStartArray();
-                }
-            }
-        }
-
-        private void WriteObjectOrArrayStart(ClassType classType, JsonEncodedText propertyName, Utf8JsonWriter writer, bool writeNull)
-        {
-            if (writeNull)
+            if ((JsonClassInfo.ClassType & (ClassType.Enumerable | ClassType.Dictionary)) != 0)
             {
-                writer.WriteNull(propertyName);
-            }
-            else if ((classType & (ClassType.Object | ClassType.Dictionary)) != 0)
-            {
-                writer.WriteStartObject(propertyName);
-                StartObjectWritten = true;
-            }
-            else
-            {
-                Debug.Assert(classType == ClassType.Enumerable);
-                writer.WriteStartArray(propertyName);
+                JsonElementPropertyInfo = JsonClassInfo.ElementClassInfo.PolicyProperty;
             }
         }
 
@@ -93,12 +48,11 @@ namespace System.Text.Json
         {
             CurrentValue = null;
             CollectionEnumerator = null;
-            ExtensionDataStatus = ExtensionDataWriteStatus.NotStarted;
             JsonClassInfo = null;
+            JsonElementPropertyInfo = null;
+            ProcessedStartToken = false;
+            ProcessedEndToken = false;
             PropertyEnumeratorIndex = 0;
-            PopStackOnEndCollection = false;
-            PopStackOnEndObject = false;
-            StartObjectWritten = false;
 
             EndProperty();
         }
@@ -108,41 +62,32 @@ namespace System.Text.Json
         {
             JsonPropertyInfo = null;
             KeyName = null;
-            MoveToNextProperty = false;
+            ProcessedPropertyName = false;
+            ProcessedPropertyValue = false;
         }
 
         public void EndDictionary()
         {
             CollectionEnumerator = null;
-            PopStackOnEndCollection = false;
         }
 
         public void EndArray()
         {
             CollectionEnumerator = null;
-            PopStackOnEndCollection = false;
         }
 
         // AggressiveInlining used although a large method it is only called from one location and is on a hot path.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void NextProperty()
+        public bool NextProperty()
         {
-            EndProperty();
-
-            int maxPropertyIndex = JsonClassInfo.PropertyCacheArray.Length;
-
-            ++PropertyEnumeratorIndex;
-            if (PropertyEnumeratorIndex >= maxPropertyIndex)
+            if (PropertyEnumeratorIndex >= JsonClassInfo.PropertyCacheArray.Length)
             {
-                if (PropertyEnumeratorIndex > maxPropertyIndex)
-                {
-                    ExtensionDataStatus = ExtensionDataWriteStatus.Finished;
-                }
-                else if (JsonClassInfo.DataExtensionProperty != null)
-                {
-                    ExtensionDataStatus = ExtensionDataWriteStatus.Writing;
-                }
+                return false;
             }
+
+            EndProperty();
+            ++PropertyEnumeratorIndex;
+            return true;
         }
     }
 }

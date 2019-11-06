@@ -108,12 +108,12 @@ namespace System.Text.Json
                 options = JsonSerializerOptions.s_defaultOptions;
             }
 
-            ReadStack readStack = default;
-            readStack.Current.Initialize(returnType, options);
+            ReadStack state = default;
+            state.Current.InitializeRoot(returnType, options);
 
-            ReadValueCore(options, ref reader, ref readStack);
+            ReadValueCore(options, ref reader, ref state);
 
-            return readStack.Current.ReturnValue;
+            return state.Current.ReturnValue;
         }
 
         private static void CheckSupportedOptions(JsonReaderOptions readerOptions, string paramName)
@@ -124,10 +124,10 @@ namespace System.Text.Json
             }
         }
 
-        private static void ReadValueCore(JsonSerializerOptions options, ref Utf8JsonReader reader, ref ReadStack readStack)
+        private static void ReadValueCore(JsonSerializerOptions options, ref Utf8JsonReader reader, ref ReadStack state)
         {
-            JsonReaderState state = reader.CurrentState;
-            CheckSupportedOptions(state.Options, nameof(reader));
+            JsonReaderState readerState = reader.CurrentState;
+            CheckSupportedOptions(readerState.Options, nameof(reader));
 
             // Value copy to overwrite the ref on an exception and undo the destructive reads.
             Utf8JsonReader restore = reader;
@@ -281,7 +281,7 @@ namespace System.Text.Json
             {
                 reader = restore;
                 // Re-throw with Path information.
-                ThrowHelper.ReThrowWithPath(readStack, ex);
+                ThrowHelper.ReThrowWithPath(state, ex);
             }
 
             int length = valueSpan.IsEmpty ? checked((int)valueSequence.Length) : valueSpan.Length;
@@ -301,7 +301,7 @@ namespace System.Text.Json
 
                 var newReader = new Utf8JsonReader(rentedSpan, isFinalBlock: true, state: default);
 
-                ReadCore(options, ref newReader, ref readStack);
+                ReadCore(options, readFirst: true, ref newReader, ref state);
 
                 // The reader should have thrown if we have remaining bytes.
                 Debug.Assert(newReader.BytesConsumed == length);

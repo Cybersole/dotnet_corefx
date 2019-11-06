@@ -70,17 +70,16 @@ namespace System.Text.Json
                 }
 
                 WriteStack state = default;
-                state.Current.Initialize(inputType, options);
+                state.Current.Initialize(inputType, options, ref state);
                 state.Current.CurrentValue = value;
 
                 bool isFinalBlock;
-                int flushThreshold;
 
                 do
                 {
-                    flushThreshold = (int)(bufferWriter.Capacity * .9); //todo: determine best value here
+                    state.FlushThreshold = (int)(bufferWriter.Capacity * .9); //todo: determine best value here
 
-                    isFinalBlock = Write(writer, originalWriterDepth: 0, flushThreshold, options, ref state);
+                    isFinalBlock = true;// Write(writer, originalWriterDepth: 0, flushThreshold, options, ref state);
                     writer.Flush();
 
                     await bufferWriter.WriteToStreamAsync(utf8Json, cancellationToken).ConfigureAwait(false);

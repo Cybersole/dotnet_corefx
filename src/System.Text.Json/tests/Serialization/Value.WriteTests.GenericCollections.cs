@@ -8,6 +8,7 @@ using Xunit;
 
 namespace System.Text.Json.Serialization.Tests
 {
+    /*
     public static partial class ValueTests
     {
         [Fact]
@@ -922,4 +923,5 @@ namespace System.Text.Json.Serialization.Tests
             public int Value { get; set; }
         }
     }
+    */
 }

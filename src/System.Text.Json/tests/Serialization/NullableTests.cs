@@ -60,14 +60,14 @@ namespace System.Text.Json.Serialization.Tests
                 dictOfDictWithNull: new Dictionary<string, IDictionary<string, DateTime?>> { { "key", idictWithDateTimeNull } },
                 now);
 
-            ImmutableDictionary<string, DateTime?> immutableDictWithDateTimeValue = ImmutableDictionary.CreateRange(new Dictionary<string, DateTime?> { { "key", now } });
-            ImmutableDictionary<string, DateTime?> immutableDictWithDateTimeNull = ImmutableDictionary.CreateRange(new Dictionary<string, DateTime?> { { "key", null } });
-            TestDictionaryWithNullableValue<ImmutableDictionary<string, DateTime?>, ImmutableDictionary<string, ImmutableDictionary<string, DateTime?>>, DateTime?>(
-                immutableDictWithDateTimeValue,
-                immutableDictWithDateTimeNull,
-                dictOfDictWithValue: ImmutableDictionary.CreateRange(new Dictionary<string, ImmutableDictionary<string, DateTime?>> { { "key", immutableDictWithDateTimeValue } }),
-                dictOfDictWithNull: ImmutableDictionary.CreateRange(new Dictionary<string, ImmutableDictionary<string, DateTime?>> { { "key", immutableDictWithDateTimeNull } }),
-                now);
+            //ImmutableDictionary<string, DateTime?> immutableDictWithDateTimeValue = ImmutableDictionary.CreateRange(new Dictionary<string, DateTime?> { { "key", now } });
+            //ImmutableDictionary<string, DateTime?> immutableDictWithDateTimeNull = ImmutableDictionary.CreateRange(new Dictionary<string, DateTime?> { { "key", null } });
+            //TestDictionaryWithNullableValue<ImmutableDictionary<string, DateTime?>, ImmutableDictionary<string, ImmutableDictionary<string, DateTime?>>, DateTime?>(
+            //    immutableDictWithDateTimeValue,
+            //    immutableDictWithDateTimeNull,
+            //    dictOfDictWithValue: ImmutableDictionary.CreateRange(new Dictionary<string, ImmutableDictionary<string, DateTime?>> { { "key", immutableDictWithDateTimeValue } }),
+            //    dictOfDictWithNull: ImmutableDictionary.CreateRange(new Dictionary<string, ImmutableDictionary<string, DateTime?>> { { "key", immutableDictWithDateTimeNull } }),
+            //    now);
         }
 
         public class MyOverflowWrapper
@@ -170,7 +170,7 @@ namespace System.Text.Json.Serialization.Tests
             public ImmutableSortedDictionary<string, DateTime?> ImmutableSortedDict { get; set; }
         }
 
-        [Fact]
+        [Fact(Skip = "ImmutableDict")]
         public static void ClassWithDictionariesWithNullableValues()
         {
             string json =
@@ -194,7 +194,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Contains(@"""ImmutableSortedDict"":{""key"":null}", serialized);
         }
 
-        [Fact]
+        [Fact(Skip = "Not Supported")]
         public static void EnumerableWithNullableValue()
         {
             IEnumerable<float?> ieWithFloatValue = new List<float?> { 42.0f };

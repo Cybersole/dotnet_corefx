@@ -353,6 +353,8 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(0, result2.Count());
         }
 
+        /* todo
+
         [Fact]
         public static void ReadGenericIReadOnlyCollectionOfGenericIReadOnlyCollection()
         {
@@ -1167,5 +1169,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal("test", JsonSerializer.Deserialize<MyMyList<string>>(json).First());
             Assert.Equal("test", JsonSerializer.Deserialize<MyListString>(json).First());
         }
+
+    */
     }
 }

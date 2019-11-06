@@ -24,8 +24,12 @@ namespace System.Text.Json.Serialization.Tests
                 @"{" +
                     @"""picture"": ""http://placehold.it/32x32""," +
                     @"""eyeColor"": ""Brown""," +
+                    @"""registered"": ""2015-05-30T01:50:21 -01:00""," +
+                    @"""model2Temp"":{" +
+                    @"""picture"": ""a""," +
+                    @"""eyeColor"": ""Brown""," +
                     @"""registered"": ""2015-05-30T01:50:21 -01:00""" +
-                @"}";
+                @"}}";
 
             JsonSerializerOptions options = new JsonSerializerOptions
             {
@@ -56,6 +60,14 @@ namespace System.Text.Json.Serialization.Tests
             }
 
             public sealed class Model
+            {
+                public Color EyeColor { get; set; }
+                public Uri Picture { get; set; }
+                public DateTime Registered { get; set; }
+                public Model2Temp Model2Temp { get; set; }
+            }
+
+            public sealed class Model2Temp
             {
                 public Color EyeColor { get; set; }
                 public Uri Picture { get; set; }

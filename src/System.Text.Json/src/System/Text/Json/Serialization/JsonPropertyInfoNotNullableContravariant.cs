@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace System.Text.Json.Serialization
@@ -15,62 +13,11 @@ namespace System.Text.Json.Serialization
         JsonPropertyInfoCommon<TClass, TDeclaredProperty, TRuntimeProperty, TConverter>
         where TDeclaredProperty : TConverter
     {
-        protected override void OnRead(ref ReadStack state, ref Utf8JsonReader reader)
+        public override bool GetMemberAndWriteJson(object obj, ref WriteStack state, Utf8JsonWriter writer)
         {
-            if (Converter == null)
-            {
-                ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(RuntimePropertyType);
-            }
+            bool success;
 
-            TConverter value = Converter.Read(ref reader, RuntimePropertyType, Options);
-
-            if (state.Current.ReturnValue == null)
-            {
-                state.Current.ReturnValue = value;
-            }
-            else
-            {
-                Set(state.Current.ReturnValue, (TDeclaredProperty)value);
-            }
-
-            return;
-        }
-
-        protected override void OnReadEnumerable(ref ReadStack state, ref Utf8JsonReader reader)
-        {
-            if (Converter == null)
-            {
-                ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(RuntimePropertyType);
-            }
-
-            if (state.Current.KeyName == null && state.Current.IsProcessingDictionary())
-            {
-                ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(RuntimePropertyType);
-                return;
-            }
-
-            // We need an initialized array in order to store the values.
-            if (state.Current.IsProcessingEnumerable() && state.Current.TempEnumerableValues == null && state.Current.ReturnValue == null)
-            {
-                ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(RuntimePropertyType);
-                return;
-            }
-
-            TConverter value = Converter.Read(ref reader, RuntimePropertyType, Options);
-            JsonSerializer.ApplyValueToEnumerable(ref value, ref state);
-        }
-
-        protected override void OnWrite(ref WriteStackFrame current, Utf8JsonWriter writer)
-        {
-            TConverter value;
-            if (IsPropertyPolicy)
-            {
-                value = (TConverter)current.CurrentValue;
-            }
-            else
-            {
-                value = (TConverter)Get(current.CurrentValue);
-            }
+            TConverter value = Get(obj);
 
             if (value == null)
             {
@@ -80,70 +27,64 @@ namespace System.Text.Json.Serialization
                 {
                     writer.WriteNull(EscapedName.Value);
                 }
+
+                success = true;
             }
-            else if (Converter != null)
+            else
             {
                 if (EscapedName.HasValue)
                 {
                     writer.WritePropertyName(EscapedName.Value);
                 }
 
-                Converter.Write(writer, value, Options);
+                success = Converter.TryWrite(writer, value, Options, ref state);
             }
+
+            return success;
         }
 
-        protected override void OnWriteDictionary(ref WriteStackFrame current, Utf8JsonWriter writer)
+        public override bool GetMemberAndWriteJsonExtensionData(object obj, ref WriteStack state, Utf8JsonWriter writer)
         {
-            JsonSerializer.WriteDictionary(Converter, Options, ref current, writer);
-        }
+            bool success;
+            TConverter value = Get(obj);
 
-        protected override void OnWriteEnumerable(ref WriteStackFrame current, Utf8JsonWriter writer)
-        {
-            if (Converter != null)
+            if (value == null)
             {
-                Debug.Assert(current.CollectionEnumerator != null);
-
-                TConverter value;
-                if (current.CollectionEnumerator is IEnumerator<TConverter> enumerator)
-                {
-                    // Avoid boxing for strongly-typed enumerators such as returned from IList<T>.
-                    value = enumerator.Current;
-                }
-                else
-                {
-                    value = (TConverter)current.CollectionEnumerator.Current;
-                }
-
-                if (value == null)
-                {
-                    writer.WriteNullValue();
-                }
-                else
-                {
-                    Converter.Write(writer, value, Options);
-                }
-            }
-        }
-
-        public override Type GetDictionaryConcreteType()
-        {
-            return typeof(Dictionary<string, TRuntimeProperty>);
-        }
-
-        public override void GetDictionaryKeyAndValueFromGenericDictionary(ref WriteStackFrame writeStackFrame, out string key, out object value)
-        {
-            if (writeStackFrame.CollectionEnumerator is IEnumerator<KeyValuePair<string, TRuntimeProperty>> genericEnumerator)
-            {
-                key = genericEnumerator.Current.Key;
-                value = genericEnumerator.Current.Value;
+                success = true;
             }
             else
             {
-                throw ThrowHelper.GetNotSupportedException_SerializationNotSupportedCollection(
-                    writeStackFrame.JsonPropertyInfo.DeclaredPropertyType,
-                    writeStackFrame.JsonPropertyInfo.ParentClassType,
-                    writeStackFrame.JsonPropertyInfo.PropertyInfo);
+                success = Converter.TryWrite(writer, value, Options, ref state);
             }
+
+            return success;
+        }
+
+        public override bool ReadJsonAndSetMember(object obj, ref ReadStack state, ref Utf8JsonReader reader)
+        {
+            bool success;
+
+            if (reader.TokenType == JsonTokenType.Null && !Converter.ConvertNullValue)
+            {
+                if (!IgnoreNullValues)
+                {
+                    TConverter value = default;
+                    Set(obj, (TDeclaredProperty)value);
+                }
+
+                success = true;
+            }
+            else
+            {
+                TConverter value = default;
+                success = Converter.TryRead(ref reader, RuntimePropertyType, Options, ref state, ref value);
+                if (success)
+                {
+                    Set(obj, (TDeclaredProperty)value);
+                }
+            }
+
+            return success;
         }
     }
 }

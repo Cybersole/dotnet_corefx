@@ -4,19 +4,47 @@
 
 namespace System.Text.Json.Serialization.Converters
 {
-    internal sealed class JsonConverterObject : JsonConverter<object>
+    internal sealed class JsonConverterObject : JsonResumableConverter<object>
     {
-        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        internal override bool OnTryRead(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref object value)
         {
-            using (JsonDocument document = JsonDocument.ParseValue(ref reader))
+            JsonConverter<JsonElement> converter = JsonSerializerOptions.GetJsonElementConverter();
+
+            JsonElement jsonElement = default;
+            bool success = converter.TryRead(ref reader, typeToConvert, options, ref state, ref jsonElement);
+            if (success)
             {
-                return document.RootElement.Clone();
+                value = jsonElement;
             }
+
+            return success;
         }
 
-        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+        internal override bool OnTryWrite(Utf8JsonWriter writer, object value, JsonSerializerOptions options, ref WriteStack state)
         {
-            throw new InvalidOperationException();
+            bool success;
+
+            if (value == null && !options.IgnoreNullValues)
+            {
+                writer.WriteNullValue();
+            }
+
+            Type type = value.GetType();
+            if (type != typeof(object))
+            {
+                // Forward to the correct converter.
+                JsonConverter converter = options.GetConverter(type, ref state);
+                success = converter.TryWriteAsObject(writer, value, options, ref state);
+            }
+            else
+            {
+                // Avoid recursion when System.Object is newed up directly.
+                writer.WriteStartObject();
+                writer.WriteEndObject();
+                success = true;
+            }
+
+            return success;
         }
     }
 }

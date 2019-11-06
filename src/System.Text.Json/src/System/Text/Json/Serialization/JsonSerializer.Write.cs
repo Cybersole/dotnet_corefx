@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Diagnostics;
-
 namespace System.Text.Json
 {
     public static partial class JsonSerializer
@@ -14,56 +12,21 @@ namespace System.Text.Json
         // 3) The object is an element in an enumerable.
         private static bool Write(
             Utf8JsonWriter writer,
-            int originalWriterDepth,
-            int flushThreshold,
             JsonSerializerOptions options,
             ref WriteStack state)
         {
-            bool finishedSerializing;
-
             try
             {
-                do
+                JsonPropertyInfo jsonPropertyInfo = state.Current.JsonPropertyInfo;
+
+                object value = state.Current.CurrentValue;
+
+                if (jsonPropertyInfo.ConverterBase.TryWriteAsObject(writer, value, options, ref state))
                 {
-                    switch (state.Current.JsonClassInfo.ClassType)
-                    {
-                        case ClassType.Enumerable:
-                            finishedSerializing = HandleEnumerable(state.Current.JsonClassInfo.ElementClassInfo, options, writer, ref state);
-                            break;
-                        case ClassType.Value:
-                            Debug.Assert(state.Current.JsonPropertyInfo.ClassType == ClassType.Value);
-                            state.Current.JsonPropertyInfo.Write(ref state, writer);
-                            finishedSerializing = true;
-                            break;
-                        case ClassType.Dictionary:
-                            finishedSerializing = HandleDictionary(state.Current.JsonClassInfo.ElementClassInfo, options, writer, ref state);
-                            break;
-                        default:
-                            Debug.Assert(state.Current.JsonClassInfo.ClassType == ClassType.Object ||
-                                state.Current.JsonClassInfo.ClassType == ClassType.Unknown);
+                    return true;
+                }
 
-                            finishedSerializing = WriteObject(options, writer, ref state);
-                            break;
-                    }
-
-                    if (finishedSerializing)
-                    {
-                        if (writer.CurrentDepth == originalWriterDepth)
-                        {
-                            break;
-                        }
-                    }
-                    else if (writer.CurrentDepth >= options.EffectiveMaxDepth)
-                    {
-                        ThrowHelper.ThrowInvalidOperationException_SerializerCycleDetected(options.MaxDepth);
-                    }
-
-                    // If serialization is not finished and we surpass flush threshold then return false which will flush stream.
-                    if (flushThreshold >= 0 && writer.BytesPending > flushThreshold)
-                    {
-                        return false;
-                    }
-                } while (true);
+                state.Current.CurrentValue = value;
             }
             catch (InvalidOperationException ex) when (ex.Source == ThrowHelper.ExceptionSourceValueToRethrowAsJsonException)
             {

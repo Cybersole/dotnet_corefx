@@ -75,7 +75,7 @@ namespace System.Text.Json.Serialization.Tests
         public ICollection<string> MyStringICollectionT { get; set; }
         public IReadOnlyCollection<string> MyStringIReadOnlyCollectionT { get; set; }
         public IReadOnlyList<string> MyStringIReadOnlyListT { get; set; }
-        public ISet<string> MyStringISetT { get; set; }
+        //public ISet<string> MyStringISetT { get; set; }
         public KeyValuePair<string, string> MyStringToStringKeyValuePair { get; set; }
         public IDictionary MyStringToStringIDict { get; set; }
         public Dictionary<string, string> MyStringToStringGenericDict { get; set; }
@@ -274,7 +274,7 @@ namespace System.Text.Json.Serialization.Tests
             MyStringICollectionT = new string[] { "Hello" };
             MyStringIReadOnlyCollectionT = new string[] { "Hello" };
             MyStringIReadOnlyListT = new string[] { "Hello" };
-            MyStringISetT = new HashSet<string> { "Hello" };
+            //MyStringISetT = new HashSet<string> { "Hello" };
 
             MyStringToStringKeyValuePair = new KeyValuePair<string, string>("myKey", "myValue");
             MyStringToStringIDict = new Dictionary<string, string> { { "key", "value" } };

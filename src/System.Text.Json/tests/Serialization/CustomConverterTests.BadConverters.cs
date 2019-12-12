@@ -145,14 +145,14 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void ConverterThatReturnsNullFail()
         {
             var options = new JsonSerializerOptions();
             options.Converters.Add(new ConverterThatReturnsNull());
 
-            Assert.Throws<ArgumentNullException>(() => JsonSerializer.Serialize(0, options));
-            Assert.Throws<ArgumentNullException>(() => JsonSerializer.Deserialize<int>("0", options));
+            Assert.Throws<NotSupportedException>(() => JsonSerializer.Serialize(0, options));
+            Assert.Throws<NotSupportedException>(() => JsonSerializer.Deserialize<int>("0", options));
         }
 
         private class Level1

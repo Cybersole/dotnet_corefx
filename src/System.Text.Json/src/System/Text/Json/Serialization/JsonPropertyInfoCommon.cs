@@ -108,25 +108,6 @@ namespace System.Text.Json
             }
         }
 
-        public override bool TryCreateEnumerableAddMethod(object target, out object addMethodDelegate)
-        {
-            SetPropertyInfoForObjectElement();
-            Debug.Assert((_elementPropertyInfo ?? ElementClassInfo.PolicyProperty) != null);
-
-            addMethodDelegate = (_elementPropertyInfo ?? ElementClassInfo.PolicyProperty).CreateEnumerableAddMethod(RuntimeClassInfo.AddItemToObject, target);
-            return addMethodDelegate != null;
-        }
-
-        public override object CreateEnumerableAddMethod(MethodInfo addMethod, object target)
-        {
-            if (target is ICollection<TDeclaredProperty> collection && collection.IsReadOnly)
-            {
-                return null;
-            }
-
-            return Options.MemberAccessorStrategy.CreateAddDelegate<TDeclaredProperty>(addMethod, target);
-        }
-
         public override IList CreateConverterList()
         {
             return new List<TDeclaredProperty>();

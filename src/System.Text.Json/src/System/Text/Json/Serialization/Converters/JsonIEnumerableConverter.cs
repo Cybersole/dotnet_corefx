@@ -53,5 +53,7 @@ namespace System.Text.Json.Serialization.Converters
 
             return true;
         }
+
+        internal override Type RuntimeType => typeof(List<object>);
     }
 }

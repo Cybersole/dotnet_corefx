@@ -21,17 +21,20 @@ namespace System.Text.Json
                 return JsonPropertyInfo.CreateIgnoredPropertyPlaceholder(propertyInfo, options);
             }
 
-            JsonConverter converter = null;
+            JsonConverter converter;
             ClassType classType = GetClassType(
                 propertyType,
                 parentClassType,
                 propertyInfo,
                 out Type runtimeType,
                 out Type elementType,
-                out _,
                 out converter,
-                checkForAddMethod: false,
                 options);
+
+            if (converter == null)
+            {
+                ThrowHelper.ThrowNotSupportedException_SerializationNotSupportedCollection(propertyType, parentClassType, propertyInfo);
+            }
 
             return CreateProperty(
                 declaredPropertyType: propertyType,
@@ -162,9 +165,7 @@ namespace System.Text.Json
                     key.property.PropertyInfo,
                     out _,
                     out Type elementType,
-                    out _,
                     out JsonConverter converter,
-                    checkForAddMethod: false,
                     Options);
 
                 JsonPropertyInfo runtimeProperty = CreateProperty(

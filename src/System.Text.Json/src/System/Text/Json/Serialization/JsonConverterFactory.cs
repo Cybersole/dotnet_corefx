@@ -29,6 +29,7 @@ namespace System.Text.Json.Serialization
 
         internal override sealed bool ConvertNullValue => throw new InvalidOperationException("todo");
 
+        internal sealed override Type ElementType => null;
 
         internal JsonConverter GetConverterInternal(Type typeToConvert, JsonSerializerOptions options)
         {

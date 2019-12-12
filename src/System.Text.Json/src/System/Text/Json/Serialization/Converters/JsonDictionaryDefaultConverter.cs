@@ -6,6 +6,10 @@ namespace System.Text.Json.Serialization.Converters
 {
     internal abstract class JsonDictionaryDefaultConverter<TCollection, TValue> : JsonDictionaryConverter<TCollection>
     {
+        private Type _elementType = typeof(TValue);
+
+        internal override Type ElementType => _elementType;
+
         internal override sealed bool OnTryRead(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref TCollection value)
         {
             // Read StartObject.

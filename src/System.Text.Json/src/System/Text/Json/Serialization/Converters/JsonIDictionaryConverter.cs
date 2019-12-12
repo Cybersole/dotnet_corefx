@@ -65,5 +65,18 @@ namespace System.Text.Json.Serialization.Converters
 
             return true;
         }
+
+        internal override Type RuntimeType
+        {
+            get
+            {
+                if (TypeToConvert.IsAbstract || TypeToConvert.IsInterface)
+                {
+                    return typeof(Dictionary<string, object>);
+                }
+
+                return TypeToConvert;
+            }
+        }
     }
 }

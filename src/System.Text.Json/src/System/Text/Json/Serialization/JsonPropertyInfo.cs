@@ -217,10 +217,6 @@ namespace System.Text.Json
             ConverterBase = converter;
         }
 
-        public abstract bool TryCreateEnumerableAddMethod(object target, out object addMethodDelegate);
-
-        public abstract object CreateEnumerableAddMethod(MethodInfo addMethod, object target);
-
         public bool IgnoreNullValues { get; private set; }
 
         public bool IsPropertyPolicy { get; protected set; }

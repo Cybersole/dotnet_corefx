@@ -25,6 +25,8 @@ namespace System.Text.Json.Serialization
 
         internal abstract bool ConvertNullValue { get; }
 
+        internal abstract Type ElementType { get; }
+
         internal bool IsInternalConverter { get; set; }
 
         internal void Push(ref ReadStack state)
@@ -84,6 +86,8 @@ namespace System.Text.Json.Serialization
             return TryReadAhead(ref reader, ref state);
         }
 
+        // For polymorphic cases, the concrete type to create.
+        internal virtual Type RuntimeType => TypeToConvert;
 
         // This is used internally to quickly determine the type being converted for JsonConverter<T>.
         internal abstract Type TypeToConvert { get; }
@@ -103,8 +107,7 @@ namespace System.Text.Json.Serialization
                     // the current token to either attempt to skip again or to actually read the value in
                     // HandleValue below.
 
-                    reader = new Utf8JsonReader(
-                        reader.OriginalSpan.Slice(checked((int)state.InitialReaderBytesConsumed)),
+                    reader = new Utf8JsonReader(reader.OriginalSpan.Slice(checked((int)state.InitialReaderBytesConsumed)),
                         isFinalBlock: reader.IsFinalBlock,
                         state: state.InitialReaderState);
 

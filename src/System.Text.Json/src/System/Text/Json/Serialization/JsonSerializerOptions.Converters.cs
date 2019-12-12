@@ -163,7 +163,7 @@ namespace System.Text.Json
             if (converter is JsonConverterFactory factory)
             {
                 converter = factory.GetConverterInternal(typeToConvert, this);
-                // Allow null converters; it means it the factory's CanConvert did not spend the time to detect 100%.
+                // Allow null converters from the factory. This will result in a NotSupportedException later.
             }
 
             if (converter != null)

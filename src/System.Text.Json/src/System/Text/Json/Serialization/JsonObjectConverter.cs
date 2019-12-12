@@ -13,5 +13,7 @@ namespace System.Text.Json.Serialization
                 return ClassType.Object;
             }
         }
+
+        internal override sealed Type ElementType => null;
     }
 }

@@ -12,6 +12,8 @@ namespace System.Text.Json.Serialization
     /// <typeparam name="T">The <see cref="Type"/> to convert.</typeparam>
     public abstract class JsonConverter<T> : JsonConverter
     {
+        private Type _typeToConvert = typeof(T);
+
         /// <summary>
         /// When overidden, constructs a new <see cref="JsonConverter{T}"/> instance.
         /// </summary>
@@ -41,6 +43,8 @@ namespace System.Text.Json.Serialization
             }
         }
 
+        internal override Type ElementType => null;
+
         // By default allow converters to process null
         internal override bool ConvertNullValue => true;
 
@@ -68,7 +72,7 @@ namespace System.Text.Json.Serialization
             {
                 if (TypeToConvert.IsValueType)
                 {
-                    valueOfT = default(T);
+                    valueOfT = default;
                 }
                 else
                 {
@@ -226,7 +230,7 @@ namespace System.Text.Json.Serialization
             return success;
         }
 
-        internal override sealed Type TypeToConvert => typeof(T);
+        internal override sealed Type TypeToConvert => _typeToConvert;
 
         /// <summary>
         /// Write the value as JSON.

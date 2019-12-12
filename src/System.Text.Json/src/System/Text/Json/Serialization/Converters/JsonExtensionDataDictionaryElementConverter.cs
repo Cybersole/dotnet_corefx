@@ -9,6 +9,8 @@ namespace System.Text.Json.Serialization.Converters
 {
     internal sealed class JsonExtensionDataDictionaryElementConverter : JsonDictionaryConverter<Dictionary<string, JsonElement>>
     {
+        internal override Type ElementType => typeof(JsonElement);
+
         internal override bool OnTryRead(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref Dictionary<string, JsonElement> value)
         {
             // Reading is not handled through a converter.

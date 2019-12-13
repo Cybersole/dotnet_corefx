@@ -82,7 +82,7 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void WriteEmptyObjectArray()
         {
             object[] arr = new object[] { new object() };
@@ -135,7 +135,7 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void WriteClassWithObjectArray()
         {
             string json;

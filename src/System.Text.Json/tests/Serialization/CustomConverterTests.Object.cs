@@ -206,7 +206,7 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void ClassWithFieldHavingCustomConverterTest()
         {
             TestClassWithFieldsHavingCustomConverter testObject = new TestClassWithFieldsHavingCustomConverter

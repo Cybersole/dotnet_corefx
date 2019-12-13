@@ -131,10 +131,20 @@ namespace System.Text.Json.Serialization
 
         internal bool TryReadAsObject(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref object value)
         {
-            if (reader.TokenType == JsonTokenType.Null && !ConvertNullValue)
+            if (reader.TokenType == JsonTokenType.Null)
             {
-                // todo: throw if property does not support null
-                return true;
+                if (!ConvertNullValue)
+                {
+                    // todo: verify CanBeNull?
+                    return true;
+                }
+
+                // Allow a value type converter that can't be null to return a null value representation, such as JsonElement.
+                // Most likely this cause an JsonException during the convertion.
+                if (!TypeToConvert.IsValueType)
+                {
+                    return true;
+                }
             }
 
             if (ClassType != ClassType.Value)

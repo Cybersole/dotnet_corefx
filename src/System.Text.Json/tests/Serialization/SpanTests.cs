@@ -66,7 +66,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(42, element.GetInt32());
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void ToStringNullTypeFail()
         {
             Assert.Throws<ArgumentNullException>(() => JsonSerializer.Serialize(new object(), (Type)null));

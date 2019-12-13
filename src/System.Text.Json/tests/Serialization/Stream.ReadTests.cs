@@ -65,7 +65,7 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static async Task ReadPrimitivesWithTrailingTriviaAsync()
         {
             using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes(" 1\t// Comment\r\n/* Multi\r\nLine */")))

@@ -14,6 +14,7 @@ namespace System.Text.Json.Serialization.Converters
             Type collectionType = state.Current.JsonClassInfo.Type;
             if (collectionType != RuntimeType && collectionType != TypeToConvert)
             {
+                // A collection was specified that just implements IEnumerable; there's not a way to populate that.
                 ThrowHelper.ThrowNotSupportedException_SerializationNotSupportedCollection(collectionType);
             }
 

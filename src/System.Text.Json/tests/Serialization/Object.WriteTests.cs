@@ -41,7 +41,7 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void WriteObjectAsObject()
         {
             var obj = new ObjectObject { Object = new object() };

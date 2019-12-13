@@ -170,7 +170,7 @@ namespace System.Text.Json.Serialization.Tests
             public ImmutableSortedDictionary<string, DateTime?> ImmutableSortedDict { get; set; }
         }
 
-        [Fact(Skip = "ImmutableDict")]
+        [Fact(Skip = "todo: fix this test (ImmutableDict)")]
         public static void ClassWithDictionariesWithNullableValues()
         {
             string json =

@@ -103,7 +103,7 @@ namespace System.Text.Json.Serialization.Tests
         private static object GetProperty(SimpleTestClass testClass, string propertyName)
             => testClass.GetType().GetProperty(propertyName).GetValue(testClass, null);
 
-        [Theory(Skip = "todo: fix this test")]
+        [Theory()]
         [MemberData(nameof(ToString_WithinRange))]
         public static void ToString_WithinRange_ReturnsSameValue(object expected, object enumValue)
         {

@@ -240,23 +240,33 @@ namespace System.Text.Json
 
         public bool ReadJsonAndAddExtensionProperty(object obj, ref ReadStack state, ref Utf8JsonReader reader)
         {
-            JsonConverter<JsonElement> converter = JsonSerializerOptions.GetJsonElementConverter();
-            JsonElement jsonElement = default;
-            if (!converter.TryRead(ref reader, typeof(JsonElement), Options, ref state, ref jsonElement))
-            {
-                // No need to set a partial object here since JsonElement is a struct that must be read in full.
-                return false;
-            }
-
             object propValue = GetValueAsObject(obj);
-            if (propValue is IDictionary<string, object> dictionaryObject)
+            IDictionary<string, object> dictionaryObject  = propValue as IDictionary<string, object>;
+
+            if (dictionaryObject != null && reader.TokenType == JsonTokenType.Null)
             {
-                dictionaryObject[state.Current.KeyName] = jsonElement;
+                // A null JSON value is treated as a null object reference.
+                dictionaryObject[state.Current.KeyName] = null;
             }
             else
             {
-                IDictionary<string, JsonElement> dictionaryJsonElement = (IDictionary<string, JsonElement>)propValue;
-                dictionaryJsonElement[state.Current.KeyName] = jsonElement;
+                JsonConverter<JsonElement> converter = JsonSerializerOptions.GetJsonElementConverter();
+                JsonElement jsonElement = default;
+                if (!converter.TryRead(ref reader, typeof(JsonElement), Options, ref state, ref jsonElement))
+                {
+                    // No need to set a partial object here since JsonElement is a struct that must be read in full.
+                    return false;
+                }
+
+                if (dictionaryObject != null)
+                {
+                    dictionaryObject[state.Current.KeyName] = jsonElement;
+                }
+                else
+                {
+                    IDictionary<string, JsonElement> dictionaryJsonElement = (IDictionary<string, JsonElement>)propValue;
+                    dictionaryJsonElement[state.Current.KeyName] = jsonElement;
+                }
             }
 
             return true;

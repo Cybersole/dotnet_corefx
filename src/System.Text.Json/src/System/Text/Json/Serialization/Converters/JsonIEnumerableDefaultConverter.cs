@@ -68,16 +68,26 @@ namespace System.Text.Json.Serialization.Converters
 
         internal override sealed bool OnTryWrite(Utf8JsonWriter writer, TCollection value, JsonSerializerOptions options, ref WriteStack state)
         {
-            if (!state.Current.ProcessedStartToken)
-            {
-                writer.WriteStartArray();
-                state.Current.ProcessedStartToken = true;
-            }
+            bool success;
 
-            bool success = OnWriteResume(writer, value, options, ref state);
-            if (success)
+            if (value == null)
             {
-                writer.WriteEndArray();
+                writer.WriteNullValue();
+                success = true;
+            }
+            else
+            {
+                if (!state.Current.ProcessedStartToken)
+                {
+                    writer.WriteStartArray();
+                    state.Current.ProcessedStartToken = true;
+                }
+
+                success = OnWriteResume(writer, value, options, ref state);
+                if (success)
+                {
+                    writer.WriteEndArray();
+                }
             }
 
             return success;

@@ -127,6 +127,12 @@ namespace System.Text.Json.Serialization.Converters
 
         internal override bool OnTryWrite(Utf8JsonWriter writer, T value, JsonSerializerOptions options, ref WriteStack state)
         {
+            if (value == null)
+            {
+                writer.WriteNullValue();
+                return true;
+            }
+
             if (!state.Current.ProcessedStartToken)
             {
                 writer.WriteStartObject();

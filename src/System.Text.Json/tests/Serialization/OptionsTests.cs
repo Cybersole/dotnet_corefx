@@ -323,15 +323,16 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(obj.MyString, message);
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void Options_GetConverterForObjectJsonElement_GivesCorrectConverter()
         {
-            GenericObjectOrJsonElementConverterTestHelper<object>("JsonConverterObject", new object(), "[3]", true);
             JsonElement element = JsonDocument.Parse("[3]").RootElement;
-            GenericObjectOrJsonElementConverterTestHelper<JsonElement>("JsonConverterJsonElement", element, "[3]", false);
+
+            GenericObjectOrJsonElementConverterTestHelper<object>("JsonConverterObject", element, "[3]");
+            GenericObjectOrJsonElementConverterTestHelper<JsonElement>("JsonConverterJsonElement", element, "[3]");
         }
 
-        private static void GenericObjectOrJsonElementConverterTestHelper<T>(string converterName, object objectValue, string stringValue, bool throws)
+        private static void GenericObjectOrJsonElementConverterTestHelper<T>(string converterName, object objectValue, string stringValue)
         {
             var options = new JsonSerializerOptions();
 
@@ -358,22 +359,14 @@ namespace System.Text.Json.Serialization.Tests
             using (var stream = new MemoryStream())
             using (var writer = new Utf8JsonWriter(stream))
             {
-                if (throws)
-                {
-                    Assert.Throws<InvalidOperationException>(() => converter.Write(writer, (T)objectValue, options));
-                    Assert.Throws<InvalidOperationException>(() => converter.Write(writer, (T)objectValue, null));
-                }
-                else
-                {
-                    converter.Write(writer, (T)objectValue, options);
-                    writer.Flush();
-                    Assert.Equal(stringValue, Encoding.UTF8.GetString(stream.ToArray()));
+                converter.Write(writer, (T)objectValue, options);
+                writer.Flush();
+                Assert.Equal(stringValue, Encoding.UTF8.GetString(stream.ToArray()));
 
-                    writer.Reset(stream);
-                    converter.Write(writer, (T)objectValue, null); // Test with null option
-                    writer.Flush();
-                    Assert.Equal(stringValue + stringValue, Encoding.UTF8.GetString(stream.ToArray()));
-                }
+                writer.Reset(stream);
+                converter.Write(writer, (T)objectValue, null); // Test with null option
+                writer.Flush();
+                Assert.Equal(stringValue + stringValue, Encoding.UTF8.GetString(stream.ToArray()));
             }
         }
 

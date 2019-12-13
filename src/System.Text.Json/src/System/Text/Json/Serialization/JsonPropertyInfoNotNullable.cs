@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json
 {
@@ -21,7 +22,7 @@ namespace System.Text.Json
 
             TConverter value = (TConverter)Get(obj);
 
-            if (!RuntimePropertyType.IsValueType && value == null)
+            if (value == null)
             {
                 if (!IgnoreNullValues)
                 {
@@ -50,7 +51,7 @@ namespace System.Text.Json
             }
             else
             {
-                success = Converter.TryWrite(writer, value, Options, ref state);
+                success = Converter.TryWriteDataExtensionProperty(writer, value, Options, ref state);
             }
 
             return success;
@@ -76,7 +77,10 @@ namespace System.Text.Json
                 success = Converter.TryRead(ref reader, RuntimePropertyType, Options, ref state, ref value);
                 if (success)
                 {
-                    Set(obj, value);
+                    if (reader.TokenType != JsonTokenType.Null || !IgnoreNullValues || value != null)
+                    {
+                        Set(obj, value);
+                    }
                 }
             }
 

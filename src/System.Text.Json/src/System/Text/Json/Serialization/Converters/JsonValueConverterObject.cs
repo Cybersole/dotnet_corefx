@@ -24,24 +24,27 @@ namespace System.Text.Json.Serialization.Converters
         {
             bool success;
 
-            if (value == null && !options.IgnoreNullValues)
+            if (value == null)
             {
                 writer.WriteNullValue();
-            }
-
-            Type type = value.GetType();
-            if (type != typeof(object))
-            {
-                // Forward to the correct converter.
-                JsonConverter converter = options.GetConverter(type, ref state);
-                success = converter.TryWriteAsObject(writer, value, options, ref state);
+                success = true;
             }
             else
             {
-                // Avoid recursion when System.Object is newed up directly.
-                writer.WriteStartObject();
-                writer.WriteEndObject();
-                success = true;
+                Type type = value.GetType();
+                if (type != typeof(object))
+                {
+                    // Forward to the correct converter.
+                    JsonConverter converter = options.GetConverter(type, ref state);
+                    success = converter.TryWriteAsObject(writer, value, options, ref state);
+                }
+                else
+                {
+                    // Avoid recursion when System.Object is newed up directly.
+                    writer.WriteStartObject();
+                    writer.WriteEndObject();
+                    success = true;
+                }
             }
 
             return success;

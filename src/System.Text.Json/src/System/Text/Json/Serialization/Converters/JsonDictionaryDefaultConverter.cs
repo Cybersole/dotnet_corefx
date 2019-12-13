@@ -53,7 +53,6 @@ namespace System.Text.Json.Serialization.Converters
                     }
 
                     state.Current.ProcessedName = true;
-
                     state.Current.KeyName = reader.GetString();
                 }
 
@@ -93,12 +92,22 @@ namespace System.Text.Json.Serialization.Converters
 
         internal override sealed bool OnTryWrite(Utf8JsonWriter writer, TCollection dictionary, JsonSerializerOptions options, ref WriteStack state)
         {
-            writer.WriteStartObject(); //todo: verify didn't write
+            bool success;
 
-            bool success = OnWriteResume(writer, dictionary, options, ref state);
-            if (success)
+            if (dictionary == null)
             {
-                writer.WriteEndObject();
+                writer.WriteNullValue();
+                success = true;
+            }
+            else
+            {
+                writer.WriteStartObject(); //todo: verify didn't write
+
+                success = OnWriteResume(writer, dictionary, options, ref state);
+                if (success)
+                {
+                    writer.WriteEndObject();
+                }
             }
 
             return success;
@@ -119,7 +128,7 @@ namespace System.Text.Json.Serialization.Converters
 
         protected string GetKeyName(string key, ref WriteStack state, JsonSerializerOptions options)
         {
-            if (options.DictionaryKeyPolicy != null)
+            if (options.DictionaryKeyPolicy != null && !state.Current.IgnoreDictionaryKeyPolicy)
             {
                 key = options.DictionaryKeyPolicy.ConvertName(key);
 
@@ -134,6 +143,5 @@ namespace System.Text.Json.Serialization.Converters
 
         protected virtual void CreateCollection(ref ReadStack state) { }
         protected virtual void ConvertCollection(ref ReadStack state) { }
-        protected abstract bool OnWriteResume(Utf8JsonWriter writer, TCollection dictionary, JsonSerializerOptions options, ref WriteStack state);
     }
 }

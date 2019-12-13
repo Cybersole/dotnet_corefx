@@ -31,10 +31,6 @@ namespace System.Text.Json
         // Cache common converters.
         private static JsonConverter<object> s_objectConverter;
         private static JsonConverter<JsonElement> s_jsonElementConverter;
-        private static JsonConverter<Dictionary<string, JsonElement>> s_jsonExtensionDataDictionaryElementConverter;
-        private static JsonConverter<IDictionary<string, JsonElement>> s_jsonExtensionDataIDictionaryElementConverter;
-        private static JsonConverter<Dictionary<string, object>> s_jsonExtensionDataDictionaryObjectConverter;
-        private static JsonConverter<IDictionary<string, object>> s_jsonExtensionDataIDictionaryObjectConverter;
 
         private int _defaultBufferSize = BufferSizeDefault;
         private int _maxDepth;
@@ -384,46 +380,6 @@ namespace System.Text.Json
             {
                 ThrowHelper.ThrowInvalidOperationException_SerializerOptionsImmutable();
             }
-        }
-
-        internal static JsonConverter<IDictionary<string, JsonElement>> GetJsonExtensionDataIDictionaryElementConverter()
-        {
-            if (s_jsonExtensionDataIDictionaryElementConverter == null)
-            {
-                s_jsonExtensionDataIDictionaryElementConverter = new JsonExtensionDataIDictionaryElementConverter();
-            }
-
-            return s_jsonExtensionDataIDictionaryElementConverter;
-        }
-
-        internal static JsonConverter<Dictionary<string, JsonElement>> GetJsonExtensionDataDictionaryElementConverter()
-        {
-            if (s_jsonExtensionDataDictionaryElementConverter == null)
-            {
-                s_jsonExtensionDataDictionaryElementConverter = new JsonExtensionDataDictionaryElementConverter();
-            }
-
-            return s_jsonExtensionDataDictionaryElementConverter;
-        }
-
-        internal static JsonConverter<IDictionary<string, object>> GetJsonExtensionDataIDictionaryObjectConverter()
-        {
-            if (s_jsonExtensionDataIDictionaryObjectConverter == null)
-            {
-                s_jsonExtensionDataIDictionaryObjectConverter = new JsonExtensionDataIDictionaryObjectConverter();
-            }
-
-            return s_jsonExtensionDataIDictionaryObjectConverter;
-        }
-
-        internal static JsonConverter<Dictionary<string, object>> GetJsonExtensionDataDictionaryObjectConverter()
-        {
-            if (s_jsonExtensionDataDictionaryObjectConverter == null)
-            {
-                s_jsonExtensionDataDictionaryObjectConverter = new JsonExtensionDataDictionaryObjectConverter();
-            }
-
-            return s_jsonExtensionDataDictionaryObjectConverter;
         }
 
         internal static JsonConverter<JsonElement> GetJsonElementConverter()

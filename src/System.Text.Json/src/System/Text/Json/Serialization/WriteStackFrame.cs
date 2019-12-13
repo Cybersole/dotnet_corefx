@@ -4,7 +4,6 @@
 
 using System.Collections;
 using System.Runtime.CompilerServices;
-using System.Text.Json.Serialization;
 
 namespace System.Text.Json
 {
@@ -15,6 +14,7 @@ namespace System.Text.Json
         public bool ProcessedEndToken;
         public bool ProcessedPropertyName;
         public bool ProcessedPropertyValue;
+        public bool IgnoreDictionaryKeyPolicy;
 
         // The object (POCO or IEnumerable) that is being populated.
         public object CurrentValue;
@@ -48,6 +48,7 @@ namespace System.Text.Json
         {
             CurrentValue = null;
             CollectionEnumerator = null;
+            IgnoreDictionaryKeyPolicy = false;
             JsonClassInfo = null;
             JsonElementPropertyInfo = null;
             ProcessedStartToken = false;

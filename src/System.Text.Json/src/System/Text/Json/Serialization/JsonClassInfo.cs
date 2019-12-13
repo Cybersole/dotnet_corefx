@@ -236,21 +236,12 @@ namespace System.Text.Json
             if (jsonPropertyInfo != null)
             {
                 Type declaredPropertyType = jsonPropertyInfo.DeclaredPropertyType;
-                if (typeof(Dictionary<string, JsonElement>).IsAssignableFrom(declaredPropertyType))
+                if (typeof(Dictionary<string, object>).IsAssignableFrom(declaredPropertyType) ||
+                    typeof(Dictionary<string, JsonElement>).IsAssignableFrom(declaredPropertyType) ||
+                    typeof(IDictionary<string, object>).IsAssignableFrom(declaredPropertyType) ||
+                    typeof(IDictionary<string, JsonElement>).IsAssignableFrom(declaredPropertyType))
                 {
-                    jsonPropertyInfo.ConverterBase = JsonSerializerOptions.GetJsonExtensionDataDictionaryElementConverter();
-                }
-                else if (typeof(Dictionary<string, object>).IsAssignableFrom(declaredPropertyType))
-                {
-                    jsonPropertyInfo.ConverterBase = JsonSerializerOptions.GetJsonExtensionDataDictionaryObjectConverter();
-                }
-                else if (typeof(IDictionary<string, JsonElement>).IsAssignableFrom(declaredPropertyType))
-                {
-                    jsonPropertyInfo.ConverterBase = JsonSerializerOptions.GetJsonExtensionDataIDictionaryElementConverter();
-                }
-                else if (typeof(IDictionary<string, object>).IsAssignableFrom(declaredPropertyType))
-                {
-                    jsonPropertyInfo.ConverterBase = JsonSerializerOptions.GetJsonExtensionDataIDictionaryObjectConverter();
+                    jsonPropertyInfo.ConverterBase = Options.GetConverter(declaredPropertyType);
                 }
                 else
                 {

@@ -14,5 +14,7 @@ namespace System.Text.Json.Serialization.Converters
                 return ClassType.Dictionary;
             }
         }
+
+        protected internal abstract bool OnWriteResume(Utf8JsonWriter writer, T dictionary, JsonSerializerOptions options, ref WriteStack state);
     }
 }

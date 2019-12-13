@@ -18,7 +18,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Null(obj.MyOverflow);
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void ExtensionPropertyRoundTrip()
         {
             ClassWithExtensionProperty obj;
@@ -295,7 +295,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Null(obj.MyOverflow);
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void NullAsNullObjectOrJsonValueKindNull()
         {
             const string json = @"{""MissingProperty"":null}";
@@ -488,7 +488,7 @@ namespace System.Text.Json.Serialization.Tests
             public Dictionary<string, JsonElement> ExtensionData { get; set; } = new Dictionary<string, JsonElement>();
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void NestedClassWithJsonElementExtensionDataProperty()
         {
             var child = new ChildClassWithJsonElement { Number = 4 };
@@ -515,7 +515,7 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void DeserializeIntoObjectProperty()
         {
             ClassWithExtensionPropertyAsObject obj;
@@ -546,7 +546,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(JsonValueKind.Object, ((JsonElement)obj.MyOverflow["MyOverflow"]).ValueKind);
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void DeserializeIntoMultipleDictionaries()
         {
             ClassWithMultipleDictionaries obj;
@@ -647,14 +647,15 @@ namespace System.Text.Json.Serialization.Tests
             public Dictionary<DummyObj, string> MyOverflow { get; set; }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void ExtensionProperty_InvalidDictionary()
         {
             ClassWithInvalidExtensionPropertyStringString obj1 = new ClassWithInvalidExtensionPropertyStringString();
             Assert.Throws<InvalidOperationException>(() => JsonSerializer.Serialize(obj1));
 
+            // This fails with NotSupportedException since all Dictionaries currently need to have a string TKey.
             ClassWithInvalidExtensionPropertyObjectString obj2 = new ClassWithInvalidExtensionPropertyObjectString();
-            Assert.Throws<InvalidOperationException>(() => JsonSerializer.Serialize(obj2));
+            Assert.Throws<NotSupportedException>(() => JsonSerializer.Serialize(obj2));
         }
 
         private class ClassWithExtensionPropertyAlreadyInstantiated

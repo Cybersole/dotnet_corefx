@@ -86,7 +86,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Null(obj.MyObjectDictionaryDictionary["key"]["key"]);
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void EnableIgnoreNullValuesOnRead()
         {
             var options = new JsonSerializerOptions();

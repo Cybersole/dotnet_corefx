@@ -29,7 +29,7 @@ namespace System.Text.Json.Serialization.Converters
             ((IDictionary)state.Current.ReturnValue)[key] = value;
         }
 
-        protected override bool OnWriteResume(Utf8JsonWriter writer, IDictionary value, JsonSerializerOptions options, ref WriteStack state)
+        protected internal override bool OnWriteResume(Utf8JsonWriter writer, IDictionary value, JsonSerializerOptions options, ref WriteStack state)
         {
             JsonConverter<object> converter = GetValueConverter(ref state);
 

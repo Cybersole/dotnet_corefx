@@ -28,7 +28,7 @@ namespace System.Text.Json.Serialization.Converters
             ((TCollection)state.Current.ReturnValue)[key] = value;
         }
 
-        protected override bool OnWriteResume(Utf8JsonWriter writer, TCollection value, JsonSerializerOptions options, ref WriteStack state)
+        protected internal override bool OnWriteResume(Utf8JsonWriter writer, TCollection value, JsonSerializerOptions options, ref WriteStack state)
         {
             JsonConverter<TValue> converter = GetValueConverter(ref state);
 

@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
 {
@@ -218,6 +219,57 @@ namespace System.Text.Json.Serialization
             {
                 int originalDepth = writer.CurrentDepth;
                 success = OnTryWrite(writer, value, options, ref state);
+                VerifyWrite(originalDepth, writer);
+            }
+
+            if (ClassType != ClassType.Value)
+            {
+                state.Current.CurrentValue = value;
+                state.Pop(success);
+            }
+
+            return success;
+        }
+
+        internal bool TryWriteDataExtensionProperty(Utf8JsonWriter writer, T value, JsonSerializerOptions options, ref WriteStack state)
+        {
+            // If surpassed flush threshold then return false which will flush stream.
+            if (state.FlushThreshold > 0 && writer.BytesPending > state.FlushThreshold)
+            {
+                return false;
+            }
+
+            if (writer.CurrentDepth >= options.EffectiveMaxDepth)
+            {
+                ThrowHelper.ThrowInvalidOperationException_SerializerCycleDetected(options.MaxDepth);
+            }
+
+            Push(ref state, value);
+
+            // Ignore the naming policy for extension data.
+            state.Current.IgnoreDictionaryKeyPolicy = true;
+
+            bool success;
+            Debug.Assert(this is JsonDictionaryConverter<T>);
+            JsonDictionaryConverter<T> dictionaryConverter = (JsonDictionaryConverter<T>)this;
+
+            // For performance on release build, don't verify converter correctness for internal converters.
+            if (IsInternalConverter)
+            {
+#if DEBUG
+                int originalDepth = writer.CurrentDepth;
+#endif
+
+                success = dictionaryConverter.OnWriteResume(writer, value, options, ref state);
+
+#if DEBUG
+                VerifyWrite(originalDepth, writer);
+#endif
+            }
+            else
+            {
+                int originalDepth = writer.CurrentDepth;
+                success = dictionaryConverter.OnWriteResume(writer, value, options, ref state);
                 VerifyWrite(originalDepth, writer);
             }
 

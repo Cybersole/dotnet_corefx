@@ -10,8 +10,17 @@ namespace System.Text.Json.Serialization.Converters
     {
         protected override void CreateCollection(ref ReadStack state)
         {
+            Type collectionType = state.Current.JsonClassInfo.Type;
+            if (collectionType != RuntimeType && collectionType != TypeToConvert)
+            {
+                ThrowHelper.ThrowNotSupportedException_SerializationNotSupportedCollection(collectionType);
+            }
+
             state.Current.ReturnValue = new List<TElement>();
         }
+
+        // Consider overriding ConvertCollection to convert the list to an array since a List is mutable.
+        //  However, converting from the temporary list to an array is expensive.
 
         protected override void Add(TElement value, ref ReadStack state)
         {

@@ -568,12 +568,16 @@ namespace System.Text.Json
                 }
                 else
                 {
-                    // If the converter is more derived, use that.
+                    // Use the most derived version from the converter.RuntimeType or converter.TypeToConvert.
                     if (type.IsAssignableFrom(converterRuntimeType))
                     {
                         runtimeType = converterRuntimeType;
                     }
                     else if (converterRuntimeType.IsAssignableFrom(type))
+                    {
+                        runtimeType = type;
+                    }
+                    else if (converter.TypeToConvert.IsAssignableFrom(type))
                     {
                         runtimeType = type;
                     }

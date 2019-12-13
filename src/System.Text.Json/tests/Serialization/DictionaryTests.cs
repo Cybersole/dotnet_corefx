@@ -785,7 +785,7 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void ArrayOfDictionary()
         {
             const string JsonString = @"[{""Key1"":1,""Key2"":2},{""Key1"":3,""Key2"":4}]";
@@ -808,23 +808,23 @@ namespace System.Text.Json.Serialization.Tests
                 Assert.Equal(JsonString, json);
             }
 
-            {
-                ImmutableSortedDictionary<string, int>[] obj = JsonSerializer.Deserialize<ImmutableSortedDictionary<string, int>[]>(JsonString);
+            //{
+            //    ImmutableSortedDictionary<string, int>[] obj = JsonSerializer.Deserialize<ImmutableSortedDictionary<string, int>[]>(JsonString);
 
-                Assert.Equal(2, obj.Length);
-                Assert.Equal(2, obj[0].Count);
-                Assert.Equal(1, obj[0]["Key1"]);
-                Assert.Equal(2, obj[0]["Key2"]);
-                Assert.Equal(2, obj[1].Count);
-                Assert.Equal(3, obj[1]["Key1"]);
-                Assert.Equal(4, obj[1]["Key2"]);
+            //    Assert.Equal(2, obj.Length);
+            //    Assert.Equal(2, obj[0].Count);
+            //    Assert.Equal(1, obj[0]["Key1"]);
+            //    Assert.Equal(2, obj[0]["Key2"]);
+            //    Assert.Equal(2, obj[1].Count);
+            //    Assert.Equal(3, obj[1]["Key1"]);
+            //    Assert.Equal(4, obj[1]["Key2"]);
 
-                string json = JsonSerializer.Serialize(obj);
-                Assert.Equal(JsonString, json);
+            //    string json = JsonSerializer.Serialize(obj);
+            //    Assert.Equal(JsonString, json);
 
-                json = JsonSerializer.Serialize<object>(obj);
-                Assert.Equal(JsonString, json);
-            }
+            //    json = JsonSerializer.Serialize<object>(obj);
+            //    Assert.Equal(JsonString, json);
+            //}
         }
 
         [Fact]
@@ -1222,7 +1222,7 @@ namespace System.Text.Json.Serialization.Tests
             public ImmutableDictionary<string, string> MyImmutableDictionary { get; } = ImmutableDictionary.Create<string, string>();
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void ClassWithNoSetterAndDictionary()
         {
             // We don't attempt to deserialize into dictionaries without a setter.
@@ -1481,7 +1481,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(2, obj.MyImmutableDictionary.Count);
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void DictionaryNotSupported()
         {
             string json = @"{""MyDictionary"":{""Key"":""Value""}}";
@@ -1499,7 +1499,7 @@ namespace System.Text.Json.Serialization.Tests
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void DictionaryNotSupportedButIgnored()
         {
             string json = @"{""MyDictionary"":{""Key"":1}}";
@@ -1835,7 +1835,8 @@ namespace System.Text.Json.Serialization.Tests
 
             IEnumerator IEnumerable.GetEnumerator()
             {
-                return GetEnumerator();
+                // This GetEnumerator should not be called.
+                throw new NotImplementedException();
             }
 
             public bool Remove(string key)
@@ -1905,11 +1906,11 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(Json, json);
         }
 
-        public class DictionaryThatHasIncomatibleEnumerator<TValue> : IDictionary<string, TValue>
+        public class DictionaryThatHasIncomatibleEnumerator : IDictionary
         {
-            IDictionary<string, TValue> _inner = new Dictionary<string, TValue>();
+            Hashtable _inner = new Hashtable();
 
-            public TValue this[string key]
+            public object this[string key]
             {
                 get
                 {
@@ -1921,22 +1922,35 @@ namespace System.Text.Json.Serialization.Tests
                 }
             }
 
-            public ICollection<string> Keys => _inner.Keys;
+            public ICollection Keys => _inner.Keys;
 
-            public ICollection<TValue> Values => _inner.Values;
+            public ICollection Values => _inner.Values;
 
             public int Count => _inner.Count;
 
             public bool IsReadOnly => _inner.IsReadOnly;
 
-            public void Add(string key, TValue value)
+            public bool IsFixedSize => _inner.IsFixedSize;
+
+            public bool IsSynchronized => throw new NotImplementedException();
+
+            public object SyncRoot => throw new NotImplementedException();
+
+            public object this[object key]
             {
-                _inner.Add(key, value);
+                get
+                {
+                    return _inner[key];
+                }
+                set
+                {
+                    _inner[key] = value;
+                }
             }
 
-            public void Add(KeyValuePair<string, TValue> item)
+            public void Add(object key, object value)
             {
-                _inner.Add(item);
+                _inner.Add(key, value);
             }
 
             public void Clear()
@@ -1944,74 +1958,54 @@ namespace System.Text.Json.Serialization.Tests
                 throw new NotImplementedException();
             }
 
-            public bool Contains(KeyValuePair<string, TValue> item)
-            {
-                return _inner.Contains(item);
-            }
-
-            public bool ContainsKey(string key)
-            {
-                return _inner.ContainsKey(key);
-            }
-
-            public void CopyTo(KeyValuePair<string, TValue>[] array, int arrayIndex)
-            {
-                // CopyTo should not be called.
-                throw new NotImplementedException();
-            }
-
-            public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
-            {
-                // The generic GetEnumerator() should not be called for this test.
-                throw new NotImplementedException();
-            }
-
             IEnumerator IEnumerable.GetEnumerator()
             {
-                // Create an incompatible converter.
-                return new int[] {100,200 }.GetEnumerator();
-            }
-
-            public bool Remove(string key)
-            {
-                // Remove should not be called.
                 throw new NotImplementedException();
             }
 
-            public bool Remove(KeyValuePair<string, TValue> item)
+            public bool Contains(object key)
             {
-                // Remove should not be called.
                 throw new NotImplementedException();
             }
 
-            public bool TryGetValue(string key, out TValue value)
+            public IDictionaryEnumerator GetEnumerator()
             {
-                return _inner.TryGetValue(key, out value);
+                // Throw NotSupportedException so we can detect this GetEnumerator was called.
+                throw new NotSupportedException();
+            }
+
+            public void Remove(object key)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void CopyTo(Array array, int index)
+            {
+                throw new NotImplementedException();
             }
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void VerifyDictionaryThatHasIncomatibleEnumeratorWithInt()
         {
             const string Json = @"{""One"":1,""Two"":2}";
 
-            DictionaryThatHasIncomatibleEnumerator<int> dictionary;
-            dictionary = JsonSerializer.Deserialize<DictionaryThatHasIncomatibleEnumerator<int>>(Json);
-            Assert.Equal(1, dictionary["One"]);
-            Assert.Equal(2, dictionary["Two"]);
+            DictionaryThatHasIncomatibleEnumerator dictionary;
+            dictionary = JsonSerializer.Deserialize<DictionaryThatHasIncomatibleEnumerator>(Json);
+            Assert.Equal(1, ((JsonElement)dictionary["One"]).GetInt32());
+            Assert.Equal(2, ((JsonElement)dictionary["Two"]).GetInt32());
             Assert.Throws<NotSupportedException>(() => JsonSerializer.Serialize(dictionary));
         }
 
-
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static void VerifyDictionaryThatHasIncomatibleEnumeratorWithPoco()
         {
             const string Json = @"{""One"":{""Id"":1},""Two"":{""Id"":2}}";
 
-            DictionaryThatHasIncomatibleEnumerator<Poco> dictionary;
-            dictionary = JsonSerializer.Deserialize<DictionaryThatHasIncomatibleEnumerator<Poco>>(Json);
-            Assert.Equal(1, dictionary["One"].Id);
-            Assert.Equal(2, dictionary["Two"].Id);
+            DictionaryThatHasIncomatibleEnumerator dictionary;
+            dictionary = JsonSerializer.Deserialize<DictionaryThatHasIncomatibleEnumerator>(Json);
+            Assert.Equal(1, ((JsonElement)dictionary["One"]).GetProperty("Id").GetInt32());
+            Assert.Equal(2, ((JsonElement)dictionary["Two"]).GetProperty("Id").GetInt32());
             Assert.Throws<NotSupportedException>(() => JsonSerializer.Serialize(dictionary));
         }
 

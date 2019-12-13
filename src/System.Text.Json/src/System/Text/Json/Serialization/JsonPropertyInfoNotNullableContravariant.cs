@@ -63,9 +63,10 @@ namespace System.Text.Json.Serialization
 
         public override bool ReadJsonAndSetMember(object obj, ref ReadStack state, ref Utf8JsonReader reader)
         {
+            bool isNullToken = reader.TokenType == JsonTokenType.Null;
             bool success;
 
-            if (reader.TokenType == JsonTokenType.Null && !Converter.ConvertNullValue)
+            if (isNullToken && !Converter.HandleNullValue)
             {
                 if (!IgnoreNullValues)
                 {
@@ -81,7 +82,7 @@ namespace System.Text.Json.Serialization
                 success = Converter.TryRead(ref reader, RuntimePropertyType, Options, ref state, ref value);
                 if (success)
                 {
-                    if (reader.TokenType != JsonTokenType.Null || !IgnoreNullValues || value != null)
+                    if (!IgnoreNullValues || (!isNullToken && value != null))
                     {
                         Set(obj, (TDeclaredProperty)value);
                     }

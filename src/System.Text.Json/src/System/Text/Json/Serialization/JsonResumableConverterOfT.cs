@@ -6,8 +6,6 @@ namespace System.Text.Json.Serialization
 {
     internal abstract class JsonResumableConverter<T> : JsonConverter<T>
     {
-        internal override bool ConvertNullValue => false;
-
         public override sealed T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             // Bridge from resumable to value converters.

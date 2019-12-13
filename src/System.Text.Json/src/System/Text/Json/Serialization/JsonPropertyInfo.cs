@@ -20,8 +20,6 @@ namespace System.Text.Json
         private JsonClassInfo _runtimeClassInfo;
         private JsonClassInfo _declaredTypeClassInfo;
 
-        public bool CanBeNull { get; private set; }
-
         public ClassType ClassType;
 
         public abstract JsonConverter ConverterBase { get; set; }
@@ -209,12 +207,8 @@ namespace System.Text.Json
             ClassType = runtimeClassType;
             PropertyInfo = propertyInfo;
             ElementType = elementType;
-            Options = options;
-
-            bool treatAsNullable = Nullable.GetUnderlyingType(runtimePropertyType) != null;
-            CanBeNull = treatAsNullable || !runtimePropertyType.IsValueType;
-
             ConverterBase = converter;
+            Options = options;
         }
 
         public bool IgnoreNullValues { get; private set; }

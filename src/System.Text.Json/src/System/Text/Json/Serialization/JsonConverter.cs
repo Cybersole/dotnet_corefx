@@ -23,7 +23,16 @@ namespace System.Text.Json.Serialization
 
         internal abstract ClassType ClassType { get; }
 
-        internal abstract bool ConvertNullValue { get; }
+        // Whether the converter should handle the null value.
+        internal virtual bool HandleNullValue
+        {
+            get
+            {
+                // Allow a converter that can't be null to return a null value representation, such as JsonElement or Nullable<>.
+                // In other cases, this will likely cause an JsonException in the converter.
+                return TypeToConvert.IsValueType;
+            }
+        }
 
         internal abstract Type ElementType { get; }
 
@@ -131,20 +140,9 @@ namespace System.Text.Json.Serialization
 
         internal bool TryReadAsObject(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref object value)
         {
-            if (reader.TokenType == JsonTokenType.Null)
+            if (reader.TokenType == JsonTokenType.Null && !HandleNullValue)
             {
-                if (!ConvertNullValue)
-                {
-                    // todo: verify CanBeNull?
-                    return true;
-                }
-
-                // Allow a value type converter that can't be null to return a null value representation, such as JsonElement.
-                // Most likely this cause an JsonException during the convertion.
-                if (!TypeToConvert.IsValueType)
-                {
-                    return true;
-                }
+                return true;
             }
 
             if (ClassType != ClassType.Value)

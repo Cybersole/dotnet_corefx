@@ -46,15 +46,6 @@ namespace System.Text.Json.Serialization
 
         internal override Type ElementType => null;
 
-        internal override bool ConvertNullValue
-        {
-            get
-            {
-                // By default allow value converters to process null, otherwise null is handled automatically.
-                return (ClassType == ClassType.Value);
-            }
-        }
-
         // The non-generic API is sealed as it just forwards to the generic version.
         internal override sealed bool OnTryWriteAsObject(Utf8JsonWriter writer, object value, JsonSerializerOptions options, ref WriteStack state)
         {
@@ -141,20 +132,9 @@ namespace System.Text.Json.Serialization
         // todo: make public pending API review
         internal bool TryRead(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref T value)
         {
-            if (reader.TokenType == JsonTokenType.Null)
+            if (reader.TokenType == JsonTokenType.Null && !HandleNullValue)
             {
-                if (!ConvertNullValue)
-                {
-                    // todo: verify CanBeNull?
-                    return true;
-                }
-
-                // Allow a value type converter that can't be null to return a null value representation, such as JsonElement.
-                // Most likely this cause an JsonException during the convertion.
-                if (!TypeToConvert.IsValueType)
-                {
-                    return true;
-                }
+                return true;
             }
 
             if (ClassType != ClassType.Value)

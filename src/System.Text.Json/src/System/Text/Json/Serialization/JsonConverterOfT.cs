@@ -63,25 +63,7 @@ namespace System.Text.Json.Serialization
         // The non-generic API is sealed as it just forwards to the generic version.
         internal override sealed bool OnTryReadAsObject(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref object value)
         {
-            //Debug.Assert(value == null || value is T);
-
             T valueOfT = default;
-            //if (value == null)
-            //{
-            //    if (TypeToConvert.IsValueType)
-            //    {
-            //        valueOfT = default;
-            //    }
-            //    else
-            //    {
-            //        valueOfT = (T)state.Current.ReturnValue;
-            //    }
-            //}
-            //else
-            //{
-            //    valueOfT = (T)value;
-            //}
-
             bool success = OnTryRead(ref reader, typeToConvert, options, ref state, ref valueOfT);
             if (success)
             {
@@ -156,40 +138,26 @@ namespace System.Text.Json.Serialization
                 int originalDepth;
                 long originalBytesConsumed;
 
-                if (state.Current.RecoverVerificationInfo)
-                {
-                    originalTokenType = state.Current.OriginalTokenType;
-                    originalDepth = state.Current.OriginalDepth;
-                    originalBytesConsumed = state.Current.OriginalBytesConsumed;
-                    state.Current.RecoverVerificationInfo = false;
-                }
-                else
+                // Todo: validate objects and arrays as well (need to preserve state due to buffering)
+                if (ClassType == ClassType.Value)
                 {
                     originalTokenType = reader.TokenType;
                     originalDepth = reader.CurrentDepth;
                     originalBytesConsumed = reader.BytesConsumed;
                 }
+                else
+                {
+                    originalTokenType = default;
+                    originalDepth = default;
+                    originalBytesConsumed = default;
+                }
 #endif
 
                 success = OnTryRead(ref reader, typeToConvert, options, ref state, ref value);
 #if DEBUG
-                if (success)
+                if (success && ClassType == ClassType.Value)
                 {
-                    //VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
-                }
-                else
-                {
-                    state.Current.RecoverVerificationInfo = true;
-                    state.Current.OriginalTokenType = originalTokenType;
-                    state.Current.OriginalDepth = originalDepth;
-                    if (originalTokenType == JsonTokenType.StartArray || originalTokenType == JsonTokenType.StartObject)
-                    {
-                        state.Current.OriginalBytesConsumed = 0;
-                    }
-                    else
-                    {
-                        state.Current.OriginalBytesConsumed = originalBytesConsumed;
-                    }
+                    VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
                 }
 #endif
             }
@@ -199,46 +167,30 @@ namespace System.Text.Json.Serialization
                 int originalDepth;
                 long originalBytesConsumed;
 
-                if (state.Current.RecoverVerificationInfo)
-                {
-                    originalTokenType = state.Current.OriginalTokenType;
-                    originalDepth = state.Current.OriginalDepth;
-                    originalBytesConsumed = state.Current.OriginalBytesConsumed;
-                    state.Current.RecoverVerificationInfo = false;
-                }
-                else
+                // Todo: validate objects and arrays as well (need to preserve state due to buffering)
+                if (ClassType == ClassType.Value)
                 {
                     originalTokenType = reader.TokenType;
                     originalDepth = reader.CurrentDepth;
                     originalBytesConsumed = reader.BytesConsumed;
                 }
+                else
+                {
+                    originalTokenType = default;
+                    originalDepth = default;
+                    originalBytesConsumed = default;
+                }
 
                 success = OnTryRead(ref reader, typeToConvert, options, ref state, ref value);
 
-                if (success)
+                if (success && ClassType == ClassType.Value)
                 {
-                    state.Current.RecoverVerificationInfo = false;
                     VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
-                }
-                else
-                {
-                    state.Current.RecoverVerificationInfo = true;
-                    state.Current.OriginalTokenType = originalTokenType;
-                    state.Current.OriginalDepth = originalDepth;
-                    if (originalTokenType == JsonTokenType.StartArray || originalTokenType == JsonTokenType.StartObject)
-                    {
-                        state.Current.OriginalBytesConsumed = 0;
-                    }
-                    else
-                    {
-                        state.Current.OriginalBytesConsumed = originalBytesConsumed;
-                    }
                 }
             }
 
             if (ClassType != ClassType.Value)
             {
-                //state.Current.ReturnValue = value;
                 state.Pop(success);
             }
 
@@ -347,6 +299,52 @@ namespace System.Text.Json.Serialization
         }
 
         internal override sealed Type TypeToConvert => _typeToConvert;
+
+        internal override void VerifyRead(JsonTokenType tokenType, int depth, long bytesConsumed, ref Utf8JsonReader reader)
+        {
+            switch (tokenType)
+            {
+                case JsonTokenType.StartArray:
+                    if (reader.TokenType != JsonTokenType.EndArray)
+                    {
+                        ThrowHelper.ThrowJsonException_SerializationConverterRead(this);
+                    }
+                    else if (depth != reader.CurrentDepth)
+                    {
+                        ThrowHelper.ThrowJsonException_SerializationConverterRead(this);
+                    }
+
+                    // Should not be possible to have not read anything.
+                    Debug.Assert(bytesConsumed < reader.BytesConsumed);
+                    break;
+
+                case JsonTokenType.StartObject:
+                    if (reader.TokenType != JsonTokenType.EndObject)
+                    {
+                        ThrowHelper.ThrowJsonException_SerializationConverterRead(this);
+                    }
+                    else if (depth != reader.CurrentDepth)
+                    {
+                        ThrowHelper.ThrowJsonException_SerializationConverterRead(this);
+                    }
+
+                    // Should not be possible to have not read anything.
+                    Debug.Assert(bytesConsumed < reader.BytesConsumed);
+                    break;
+
+                default:
+                    // Reading a single property value.
+                    if (reader.BytesConsumed != bytesConsumed)
+                    {
+                        ThrowHelper.ThrowJsonException_SerializationConverterRead(this);
+                    }
+
+                    // Should not be possible to change token type.
+                    Debug.Assert(reader.TokenType == tokenType);
+
+                    break;
+            }
+        }
 
         /// <summary>
         /// Write the value as JSON.

@@ -79,7 +79,7 @@ namespace System.Text.Json.Serialization.Converters
 
                     if (!state.Current.UseExtensionProperty)
                     {
-                        if (!jsonPropertyInfo.ConverterBase.SingleValueReadWithReadAhead(ref reader, ref state))
+                        if (!SingleValueReadWithReadAhead(jsonPropertyInfo.ConverterBase.ClassType, ref reader, ref state))
                         {
                             return false;
                         }
@@ -87,7 +87,7 @@ namespace System.Text.Json.Serialization.Converters
                     else
                     {
                         // The actual converter is JsonElement, so force a read-ahead.
-                        if (!DoSingleValueReadWithReadAhead(ref reader, ref state))
+                        if (!SingleValueReadWithReadAhead(ClassType.Value, ref reader, ref state))
                         {
                             return false;
                         }

@@ -27,21 +27,21 @@ namespace System.Text.Json
 
                 JsonPropertyInfo jsonPropertyInfo = state.Current.JsonClassInfo.PolicyProperty;
                 JsonConverter converter = jsonPropertyInfo.ConverterBase;
-                if (state.IsContinuation)
+                if (!state.IsContinuation)
                 {
-                    // If a continuation, continue to read ahead here to avoid having to build and
-                    // then tear down the call stack if there is more than one buffer fetch necessary.
-                    if (!JsonConverter.DoSingleValueReadWithReadAhead(ref reader, ref state))
+                    if (!JsonConverter.SingleValueReadWithReadAhead(converter.ClassType, ref reader, ref state))
                     {
+                        // Read more data until we have the full element.
                         state.BytesConsumed += reader.BytesConsumed;
                         return;
                     }
                 }
                 else
                 {
-                    if (!converter.SingleValueReadWithReadAhead(ref reader, ref state))
+                    // For a continuation continue to read ahead here to avoid having to build and
+                    // then tear down the call stack if there is more than one buffer fetch necessary.
+                    if (!JsonConverter.SingleValueReadWithReadAhead(ClassType.Value, ref reader, ref state))
                     {
-                        // Read more data until we have the full element.
                         state.BytesConsumed += reader.BytesConsumed;
                         return;
                     }
@@ -53,6 +53,10 @@ namespace System.Text.Json
                 if (success)
                 {
                     state.Current.ReturnValue = value;
+
+                    // Read any trailing whitespace.
+                    // todo: support whitespace with read-ahead (if whitespace spans more than one buffer)
+                    reader.Read();
                 }
             }
             catch (JsonReaderException ex)

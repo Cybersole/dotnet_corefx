@@ -46,5 +46,11 @@ namespace System.Text.Json.Serialization
         public abstract JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options);
 
         internal override sealed Type TypeToConvert => null;
+
+        internal override sealed void VerifyRead(JsonTokenType tokenType, int depth, long bytesConsumed, ref Utf8JsonReader reader)
+        {
+            // Not expected.
+            Debug.Assert(false);
+        }
     }
 }

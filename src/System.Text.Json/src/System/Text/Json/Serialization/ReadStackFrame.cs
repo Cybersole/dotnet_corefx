@@ -21,11 +21,6 @@ namespace System.Text.Json
 
         public bool UseExtensionProperty;
 
-        public bool RecoverVerificationInfo;
-        public long OriginalBytesConsumed;
-        public JsonTokenType OriginalTokenType;
-        public int OriginalDepth;
-
         /// <summary>
         /// User state used to maintain re-entry to support Streaming scenarios.
         /// </summary>
@@ -128,32 +123,16 @@ namespace System.Text.Json
             ProcessedReadName = false;
             ProcessedReadValue = false;
             ProcessedValue = false;
-            RecoverVerificationInfo = false;
-
-#if DEBUG
-            OriginalBytesConsumed = 999;
-            OriginalTokenType = JsonTokenType.None;
-            OriginalDepth = 999;
-#endif
-
 
             // Don't clear JsonPropertyName as it is used in Path for exception cases.
         }
 
-    public void EndElement()
+        public void EndElement()
         {
             ProcessedName = false;
             ProcessedReadName = false;
             ProcessedReadValue = false;
             ProcessedValue = false;
-            RecoverVerificationInfo = false;
-
-#if DEBUG
-            OriginalBytesConsumed = 999;
-            OriginalTokenType = JsonTokenType.None;
-            OriginalDepth = 999;
-#endif
-
             // Don't clear KeyName as it is used in Path for exception cases.
         }
 

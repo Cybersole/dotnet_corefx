@@ -59,7 +59,7 @@ namespace System.Text.Json.Serialization.Converters
                 {
                     state.Current.ProcessedReadValue = true;
 
-                    if (!elementConverter.SingleValueReadWithReadAhead(ref reader, ref state))
+                    if (!SingleValueReadWithReadAhead(elementConverter.ClassType, ref reader, ref state))
                     {
                         return false;
                     }

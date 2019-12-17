@@ -13,9 +13,9 @@ namespace System.Text.Json.Serialization
     public abstract partial class JsonConverter
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool SingleValueReadWithReadAhead(ref Utf8JsonReader reader, ref ReadStack state)
+        internal static bool SingleValueReadWithReadAhead(ClassType classType, ref Utf8JsonReader reader, ref ReadStack state)
         {
-            bool readAhead = (state.ReadAhead && ClassType == ClassType.Value);
+            bool readAhead = (state.ReadAhead && classType == ClassType.Value);
             if (!readAhead)
             {
                 return reader.Read();
@@ -24,7 +24,6 @@ namespace System.Text.Json.Serialization
             return DoSingleValueReadWithReadAhead(ref reader, ref state);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool DoSingleValueReadWithReadAhead(ref Utf8JsonReader reader, ref ReadStack state)
         {
             // When we're reading ahead we always have to save the state

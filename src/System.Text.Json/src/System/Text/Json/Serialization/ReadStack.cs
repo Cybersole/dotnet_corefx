@@ -14,110 +14,135 @@ namespace System.Text.Json
         internal static readonly char[] SpecialCharacters = { '.', ' ', '\'', '/', '"', '[', ']', '(', ')', '\t', '\n', '\r', '\f', '\b', '\\', '\u0085', '\u2028', '\u2029' };
 
         private List<ReadStackFrame> _previous;
-        private int _index;
+
+        /// <summary>
+        /// The number of stack frames including Current. _previous will contain _count-1 higher frames.
+        /// </summary>
+        private int _count;
+
+        /// <summary>
+        /// The number of stack frames when the continuation started.
+        /// </summary>
         private int _continuationCount;
-        private bool _processPushPop;
 
         public JsonReaderState InitialReaderState;
         public long InitialReaderBytesConsumed;
 
-        // A field is used instead of a property to avoid value semantics.
-        public ReadStackFrame Current;
-        public ReadStackFrame Top
-        {
-            get
-            {
-                if (_index > 0)
-                {
-                    return _previous[0];
-                }
-
-                return Current;
-            }
-        }
-
-        public void Push(JsonPropertyInfo jsonPropertyInfo)
-        {
-            if (_processPushPop)
-            {
-                if (_previous == null)
-                {
-                    _previous = new List<ReadStackFrame>();
-                }
-
-                if (_continuationCount > 0)
-                {
-                    // A continuation, adjust the index.
-                    Current = _previous[_index++];
-                    _continuationCount--;
-                }
-                else
-                {
-                    AddCurrent();
-
-                    Current.Reset();
-                    JsonClassInfo classInfo = jsonPropertyInfo.RuntimeClassInfo;
-                    Current.JsonClassInfo = classInfo;
-                    Current.JsonPropertyInfo = classInfo.PolicyProperty;
-                }
-            }
-            else
-            {
-                // Ignore first Push(); Current is used without requiring _previous List.
-                _processPushPop = true;
-            }
-        }
-
         private void AddCurrent()
         {
-            if (_index == _previous.Count)
+            if (_previous == null)
+            {
+                _previous = new List<ReadStackFrame>();
+            }
+
+            if (_count > _previous.Count)
             {
                 // Need to allocate a new array element.
                 _previous.Add(Current);
             }
             else
             {
-                Debug.Assert(_index < _previous.Count);
-
                 // Use a previously allocated slot.
-                _previous[_index] = Current;
+                _previous[_count - 1] = Current;
             }
 
-            _index++;
+            _count++;
+        }
+
+        // A field is used instead of a property to avoid value semantics.
+        public ReadStackFrame Current;
+
+        public void Push(JsonPropertyInfo jsonPropertyInfo)
+        {
+            if (_continuationCount == 0)
+            {
+                if (_count == 0)
+                {
+                    // The first stack frame is held in Current.
+                    _count = 1;
+                }
+                else
+                {
+                    // Standard push.
+                    AddCurrent();
+                }
+
+                Current.Reset();
+                JsonClassInfo classInfo = jsonPropertyInfo.RuntimeClassInfo;
+                Current.JsonClassInfo = classInfo;
+                Current.JsonPropertyInfo = classInfo.PolicyProperty;
+            }
+            else if (_continuationCount == 1)
+            {
+                // No need for a push since there is only one stack frame.
+                Debug.Assert(_count == 1);
+                _continuationCount = 0;
+            }
+            else
+            {
+                // A continuation, adjust the index.
+                Current = _previous[_count - 1];
+
+                // Check if we are done.
+                if (_count == _continuationCount)
+                {
+                    _continuationCount = 0;
+                }
+                else
+                {
+                    _count++;
+                }
+            }
         }
 
         public void Pop(bool success)
         {
-            Debug.Assert(success || _continuationCount == 0);
+            Debug.Assert(_count > 0);
 
-            if (!success && _continuationCount == 0)
+            if (!success)
             {
-                AddCurrent();
-                _continuationCount--;
+                // Check if we need to initialize the continuation.
+                if (_continuationCount == 0)
+                {
+                    if (_count == 1)
+                    {
+                        // No need for a continuation since there is only one stack frame.
+                        _continuationCount = 1;
+                        _count = 1;
+                    }
+                    else
+                    {
+                        AddCurrent();
+                        _count--;
+                        _continuationCount = _count;
+                        _count--;
+                        Current = _previous[_count - 1];
+                    }
 
-                Current = _previous[--_index];
+                    return;
+                }
 
-                // Reset JsonPropertyInfo for objects where the initial value is the class.
-                Current.JsonPropertyInfo = Current.JsonClassInfo.PolicyProperty;
+                if (_continuationCount == 1)
+                {
+                    // No need for a pop since there is only one stack frame.
+                    Debug.Assert(_count == 1);
+                    return;
+                }
+
+                Debug.Assert(_count > 0);
             }
             else
             {
-                if (_index > 0)
-                {
-                    Current = _previous[--_index];
-                }
-                else
-                {
-                    Debug.Assert(_processPushPop);
-#if DEBUG
-                    // Cause an error if we push once too many times.
-                    _processPushPop = false;
-#endif
-                }
+                Debug.Assert(_continuationCount == 0);
+            }
+
+            if (_count > 1)
+            {
+                Current = _previous[--_count -1];
             }
         }
 
-        public bool IsLastFrame => _index == 0;
+        public bool IsLastFrame => _count == 0;
 
         // Return a JSONPath using simple dot-notation when possible. When special characters are present, bracket-notation is used:
         // $.x.y[0].z
@@ -126,7 +151,7 @@ namespace System.Text.Json
         {
             StringBuilder sb = new StringBuilder("$");
 
-            for (int i = 0; i < _index; i++)
+            for (int i = 0; i < _count; i++)
             {
                 AppendStackFrame(sb, _previous[i]);
             }
@@ -228,11 +253,5 @@ namespace System.Text.Json
         /// Internal flag to let us know that we need to read ahead in the inner read loop.
         /// </summary>
         internal bool ReadAhead;
-
-        public void SetToTop()
-        {
-            Current = Top;
-            _index = 0;
-        }
     }
 }

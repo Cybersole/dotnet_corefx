@@ -17,33 +17,30 @@ namespace System.Text.Json
     {
         internal static void ReadCore(
             JsonSerializerOptions options,
-            bool readFirst,
             ref Utf8JsonReader reader,
             ref ReadStack state)
         {
             try
             {
-                JsonPropertyInfo jsonPropertyInfo = state.Current.JsonPropertyInfo;
+                bool success;
+                object value;
+
+                JsonPropertyInfo jsonPropertyInfo = state.Current.JsonClassInfo.PolicyProperty;
                 JsonConverter converter = jsonPropertyInfo.ConverterBase;
 
-                if (!converter.ReadWithReadAhead(ref reader, ref state))
+                if (!converter.SingleValueReadWithReadAhead(ref reader, ref state))
                 {
+                    // Read more data until we have the full element.
+                    state.BytesConsumed += reader.BytesConsumed;
                     return;
                 }
 
-                object value = state.Current.ReturnValue;
-
-                bool success = converter.TryReadAsObject(ref reader, jsonPropertyInfo.RuntimePropertyType, options, ref state, ref value);
+                value = null;
+                success = converter.TryReadAsObject(ref reader, jsonPropertyInfo.RuntimePropertyType, options, ref state, ref value);
 
                 if (success)
                 {
                     state.Current.ReturnValue = value;
-
-                    // Read any following whitespace
-                    while (reader.Read())
-                    {
-                        Debug.Assert(reader.TokenType == JsonTokenType.Comment);
-                    }
                 }
             }
             catch (JsonReaderException ex)

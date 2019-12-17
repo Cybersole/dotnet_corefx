@@ -137,6 +137,8 @@ namespace System.Text.Json
                     int start = 0;
                     if (isFirstIteration)
                     {
+                        isFirstIteration = false;
+
                         // Handle the UTF-8 BOM if present
                         Debug.Assert(buffer.Length >= JsonConstants.Utf8Bom.Length);
                         if (buffer.AsSpan().StartsWith(JsonConstants.Utf8Bom))
@@ -149,13 +151,10 @@ namespace System.Text.Json
                     // Process the data available
                     ReadCore(
                         ref readerState,
-                        isFirstIteration,
                         isFinalBlock,
                         new ReadOnlySpan<byte>(buffer, start, bytesInBuffer),
                         options,
                         ref state);
-
-                    isFirstIteration = false;
 
                     Debug.Assert(state.BytesConsumed <= bytesInBuffer);
                     int bytesConsumed = checked((int)state.BytesConsumed);
@@ -204,7 +203,6 @@ namespace System.Text.Json
 
         private static void ReadCore(
             ref JsonReaderState readerState,
-            bool isFirstIteration,
             bool isFinalBlock,
             ReadOnlySpan<byte> buffer,
             JsonSerializerOptions options,
@@ -216,13 +214,12 @@ namespace System.Text.Json
             // to enable read ahead behaviors to ensure we have complete json objects and arrays
             // ({}, []) when needed. (Notably to successfully parse JsonElement via JsonDocument
             // to assign to object and JsonElement properties in the constructed .NET object.)
-            state.SetToTop();
+            //state.SetToTop();
             state.ReadAhead = !isFinalBlock;
             state.BytesConsumed = 0;
 
             ReadCore(
                 options,
-                readFirst: isFirstIteration,
                 ref reader,
                 ref state);
 

@@ -20,8 +20,6 @@ namespace System.Text.Json
         {
             Debug.Assert(state.Current.JsonClassInfo.ClassType == ClassType.Object);
 
-            state.Current.EndProperty();
-
             ReadOnlySpan<byte> propertyName = reader.HasValueSequence ? reader.ValueSequence.ToArray() : reader.ValueSpan;
             if (reader._stringHasEscaping)
             {

@@ -36,6 +36,7 @@
     <Compile Include="System\Text\Json\Serialization\JsonArrayConverter.cs" />
     <Compile Include="System\Text\Json\Serialization\Converters\JsonListOfTConverter.cs" />
     <Compile Include="System\Text\Json\Serialization\Converters\JsonObjectDefaultConverter.cs" />
+    <Compile Include="System\Text\Json\Serialization\JsonConverter.ReadAhead.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonObjectConverter.cs" />
     <Compile Include="System\Text\Json\Serialization\Converters\JsonObjectFactoryConverter.cs" />
     <Compile Include="System\Text\Json\Serialization\Converters\JsonValueConverterNullable.cs" />

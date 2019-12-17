@@ -29,7 +29,7 @@ namespace System.Text.Json.Serialization.Converters
                 {
                     state.Current.ProcessedReadValue = true;
 
-                    if (!elementConverter.ReadWithReadAhead(ref reader, ref state))
+                    if (!elementConverter.SingleValueReadWithReadAhead(ref reader, ref state))
                     {
                         return false;
                     }
@@ -60,9 +60,7 @@ namespace System.Text.Json.Serialization.Converters
             }
 
             ConvertCollection(ref state);
-
             value = (TCollection)state.Current.ReturnValue;
-
             return true;
         }
 
@@ -95,7 +93,7 @@ namespace System.Text.Json.Serialization.Converters
 
         protected abstract void Add(TElement value, ref ReadStack state);
 
-        protected JsonConverter<TElement> GetElementConverter(ref ReadStack state)
+        protected static JsonConverter<TElement> GetElementConverter(ref ReadStack state)
         {
             JsonConverter<TElement> converter = state.Current.JsonClassInfo.ElementClassInfo.PolicyProperty.ConverterBase as JsonConverter<TElement>;
             if (converter == null)
@@ -106,7 +104,7 @@ namespace System.Text.Json.Serialization.Converters
             return converter;
         }
 
-        protected JsonConverter<TElement> GetElementConverter(ref WriteStack state)
+        protected static JsonConverter<TElement> GetElementConverter(ref WriteStack state)
         {
             JsonConverter<TElement> converter = state.Current.JsonClassInfo.ElementClassInfo?.PolicyProperty.ConverterBase as JsonConverter<TElement>;
             if (converter == null)

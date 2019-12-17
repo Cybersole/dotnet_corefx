@@ -20,15 +20,14 @@ namespace System.Text.Json.Serialization.Converters
             }
 
             // Create the object.
-            if (value == null)
+            if (state.Current.ReturnValue == null)
             {
                 if (state.Current.JsonClassInfo.CreateObject == null)
                 {
                     ThrowHelper.ThrowNotSupportedException_DeserializeCreateObjectDelegateIsNull(state.Current.JsonClassInfo.Type);
                 }
 
-                value = (T)state.Current.JsonClassInfo.CreateObject();
-                state.Current.ReturnValue = value;
+                state.Current.ReturnValue = state.Current.JsonClassInfo.CreateObject();
             }
 
             // Read all properties.
@@ -78,7 +77,7 @@ namespace System.Text.Json.Serialization.Converters
 
                     state.Current.ProcessedReadValue = true;
 
-                    if (!jsonPropertyInfo.ConverterBase.ReadWithReadAhead(ref reader, ref state))
+                    if (!jsonPropertyInfo.ConverterBase.SingleValueReadWithReadAhead(ref reader, ref state))
                     {
                         return false;
                     }
@@ -86,16 +85,13 @@ namespace System.Text.Json.Serialization.Converters
 
                 if (state.Current.ProcessedValue == false)
                 {
-                    state.Current.ProcessedValue = true;
-
                     // Obtain the CLR value from the JSON and set the member.
-                    object obj = value;
+                    object obj = state.Current.ReturnValue;
 
                     if (!state.Current.UseExtensionProperty)
                     {
                         if (!jsonPropertyInfo.ReadJsonAndSetMember(obj, ref state, ref reader))
                         {
-                            value = (T)obj;
                             return false;
                         }
                         else
@@ -121,6 +117,8 @@ namespace System.Text.Json.Serialization.Converters
             {
                 state.Current.JsonClassInfo.UpdateSortedPropertyCache(ref state.Current);
             }
+
+            value = (T)state.Current.ReturnValue;
 
             return true;
         }

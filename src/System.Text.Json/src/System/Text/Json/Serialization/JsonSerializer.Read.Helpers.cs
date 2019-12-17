@@ -14,7 +14,7 @@ namespace System.Text.Json
             ReadStack state = default;
             state.Current.InitializeRoot(returnType, options);
 
-            ReadCore(options, readFirst: true, ref reader, ref state);
+            ReadCore(options, ref reader, ref state);
 
             return state.Current.ReturnValue;
         }

@@ -63,27 +63,31 @@ namespace System.Text.Json.Serialization
         // The non-generic API is sealed as it just forwards to the generic version.
         internal override sealed bool OnTryReadAsObject(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref object value)
         {
-            Debug.Assert(value == null || value is T);
+            //Debug.Assert(value == null || value is T);
 
-            T valueOfT;
-            if (value == null)
-            {
-                if (TypeToConvert.IsValueType)
-                {
-                    valueOfT = default;
-                }
-                else
-                {
-                    valueOfT = (T)state.Current.ReturnValue;
-                }
-            }
-            else
-            {
-                valueOfT = (T)value;
-            }
+            T valueOfT = default;
+            //if (value == null)
+            //{
+            //    if (TypeToConvert.IsValueType)
+            //    {
+            //        valueOfT = default;
+            //    }
+            //    else
+            //    {
+            //        valueOfT = (T)state.Current.ReturnValue;
+            //    }
+            //}
+            //else
+            //{
+            //    valueOfT = (T)value;
+            //}
 
             bool success = OnTryRead(ref reader, typeToConvert, options, ref state, ref valueOfT);
-            value = valueOfT;
+            if (success)
+            {
+                value = valueOfT;
+            }
+
             return success;
         }
 
@@ -148,30 +152,93 @@ namespace System.Text.Json.Serialization
             if (IsInternalConverter)
             {
 #if DEBUG
-                JsonTokenType originalTokenType = reader.TokenType;
-                int originalDepth = reader.CurrentDepth;
-                long originalBytesConsumed = reader.BytesConsumed;
+                JsonTokenType originalTokenType;
+                int originalDepth;
+                long originalBytesConsumed;
+
+                if (state.Current.RecoverVerificationInfo)
+                {
+                    originalTokenType = state.Current.OriginalTokenType;
+                    originalDepth = state.Current.OriginalDepth;
+                    originalBytesConsumed = state.Current.OriginalBytesConsumed;
+                    state.Current.RecoverVerificationInfo = false;
+                }
+                else
+                {
+                    originalTokenType = reader.TokenType;
+                    originalDepth = reader.CurrentDepth;
+                    originalBytesConsumed = reader.BytesConsumed;
+                }
 #endif
 
                 success = OnTryRead(ref reader, typeToConvert, options, ref state, ref value);
 #if DEBUG
-                VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
+                if (success)
+                {
+                    //VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
+                }
+                else
+                {
+                    state.Current.RecoverVerificationInfo = true;
+                    state.Current.OriginalTokenType = originalTokenType;
+                    state.Current.OriginalDepth = originalDepth;
+                    if (originalTokenType == JsonTokenType.StartArray || originalTokenType == JsonTokenType.StartObject)
+                    {
+                        state.Current.OriginalBytesConsumed = 0;
+                    }
+                    else
+                    {
+                        state.Current.OriginalBytesConsumed = originalBytesConsumed;
+                    }
+                }
 #endif
             }
             else
             {
-                JsonTokenType originalTokenType = reader.TokenType;
-                int originalDepth = reader.CurrentDepth;
-                long originalBytesConsumed = reader.BytesConsumed;
+                JsonTokenType originalTokenType;
+                int originalDepth;
+                long originalBytesConsumed;
+
+                if (state.Current.RecoverVerificationInfo)
+                {
+                    originalTokenType = state.Current.OriginalTokenType;
+                    originalDepth = state.Current.OriginalDepth;
+                    originalBytesConsumed = state.Current.OriginalBytesConsumed;
+                    state.Current.RecoverVerificationInfo = false;
+                }
+                else
+                {
+                    originalTokenType = reader.TokenType;
+                    originalDepth = reader.CurrentDepth;
+                    originalBytesConsumed = reader.BytesConsumed;
+                }
 
                 success = OnTryRead(ref reader, typeToConvert, options, ref state, ref value);
 
-                VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
+                if (success)
+                {
+                    state.Current.RecoverVerificationInfo = false;
+                    VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
+                }
+                else
+                {
+                    state.Current.RecoverVerificationInfo = true;
+                    state.Current.OriginalTokenType = originalTokenType;
+                    state.Current.OriginalDepth = originalDepth;
+                    if (originalTokenType == JsonTokenType.StartArray || originalTokenType == JsonTokenType.StartObject)
+                    {
+                        state.Current.OriginalBytesConsumed = 0;
+                    }
+                    else
+                    {
+                        state.Current.OriginalBytesConsumed = originalBytesConsumed;
+                    }
+                }
             }
 
             if (ClassType != ClassType.Value)
             {
-                state.Current.ReturnValue = value;
+                //state.Current.ReturnValue = value;
                 state.Pop(success);
             }
 

@@ -182,7 +182,7 @@ namespace System.Text.Json.Serialization.Tests
             public virtual string WebSite { get; set; }
         }
 
-        [Theory(Skip="todo: fix read ahead")]
+        [Theory]
         [InlineData(0)]
         [InlineData(10)]
         [InlineData(1000)]

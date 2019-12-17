@@ -8,8 +8,6 @@ namespace System.Text.Json.Serialization.Converters
     {
         internal override bool OnTryRead(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref TCollection value)
         {
-            JsonConverter<TElement> elementConverter = GetElementConverter(ref state);
-
             // Read StartArray.
             if (!state.Current.ProcessedStartToken)
             {
@@ -21,6 +19,8 @@ namespace System.Text.Json.Serialization.Converters
                 state.Current.ProcessedStartToken = true;
                 CreateCollection(ref state);
             }
+
+            JsonConverter<TElement> elementConverter = GetElementConverter(ref state);
 
             // Read all items.
             while (true)
@@ -95,7 +95,7 @@ namespace System.Text.Json.Serialization.Converters
 
         protected static JsonConverter<TElement> GetElementConverter(ref ReadStack state)
         {
-            JsonConverter<TElement> converter = state.Current.JsonClassInfo.ElementClassInfo.PolicyProperty.ConverterBase as JsonConverter<TElement>;
+            JsonConverter<TElement> converter = state.Current.JsonClassInfo.ElementClassInfo?.PolicyProperty.ConverterBase as JsonConverter<TElement>;
             if (converter == null)
             {
                 state.Current.JsonPropertyInfo.ThrowCollectionNotSupportedException();

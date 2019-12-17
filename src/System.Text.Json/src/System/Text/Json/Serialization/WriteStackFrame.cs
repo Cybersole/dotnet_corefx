@@ -31,9 +31,14 @@ namespace System.Text.Json
         public int PropertyEnumeratorIndex;
         public JsonPropertyInfo JsonPropertyInfo;
 
-        public void Initialize(Type type, JsonSerializerOptions options, ref WriteStack state)
+        public void InitializeRoot(Type type, JsonSerializerOptions options)
         {
             JsonClassInfo = options.GetOrAddClass(type);
+
+            if (JsonClassInfo.ClassType == ClassType.Invalid)
+            {
+                ThrowHelper.ThrowNotSupportedException_SerializationNotSupportedCollection(type);
+            }
 
             // For ClassType.Object, the initial JsonPropertyInfo will be used to obtain the converter for the object.
             JsonPropertyInfo = JsonClassInfo.PolicyProperty;

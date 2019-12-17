@@ -103,7 +103,7 @@ namespace System.Text.Json
                 }
 
                 WriteStack state = default;
-                state.Current.Initialize(type, options, ref state);
+                state.Current.InitializeRoot(type, options);
                 state.Current.CurrentValue = value;
 
                 Write(writer, options, ref state);

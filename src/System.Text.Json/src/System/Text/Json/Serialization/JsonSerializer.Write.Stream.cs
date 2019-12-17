@@ -70,7 +70,7 @@ namespace System.Text.Json
                 }
 
                 WriteStack state = default;
-                state.Current.Initialize(inputType, options, ref state);
+                state.Current.InitializeRoot(inputType, options);
                 state.Current.CurrentValue = value;
 
                 bool isFinalBlock;

@@ -13,6 +13,9 @@ namespace System.Text.Json
     {
         internal static readonly char[] SpecialCharacters = { '.', ' ', '\'', '/', '"', '[', ']', '(', ')', '\t', '\n', '\r', '\f', '\b', '\\', '\u0085', '\u2028', '\u2029' };
 
+        // A field is used instead of a property to avoid value semantics.
+        public ReadStackFrame Current;
+
         private List<ReadStackFrame> _previous;
 
         /// <summary>
@@ -25,6 +28,7 @@ namespace System.Text.Json
         /// </summary>
         private int _continuationCount;
 
+        // Support the read-ahead feature.
         public JsonReaderState InitialReaderState;
         public long InitialReaderBytesConsumed;
 
@@ -49,9 +53,6 @@ namespace System.Text.Json
             _count++;
         }
 
-        // A field is used instead of a property to avoid value semantics.
-        public ReadStackFrame Current;
-
         public void Push(JsonPropertyInfo jsonPropertyInfo)
         {
             if (_continuationCount == 0)
@@ -65,12 +66,12 @@ namespace System.Text.Json
                 {
                     // Standard push.
                     AddCurrent();
-                }
 
-                Current.Reset();
-                JsonClassInfo classInfo = jsonPropertyInfo.RuntimeClassInfo;
-                Current.JsonClassInfo = classInfo;
-                Current.JsonPropertyInfo = classInfo.PolicyProperty;
+                    Current.Reset();
+                    JsonClassInfo classInfo = jsonPropertyInfo.RuntimeClassInfo;
+                    Current.JsonClassInfo = classInfo;
+                    Current.JsonPropertyInfo = classInfo.PolicyProperty;
+                }
             }
             else if (_continuationCount == 1)
             {
@@ -151,7 +152,7 @@ namespace System.Text.Json
         {
             StringBuilder sb = new StringBuilder("$");
 
-            for (int i = 0; i < _count; i++)
+            for (int i = 0; i < _count - 1; i++)
             {
                 AppendStackFrame(sb, _previous[i]);
             }

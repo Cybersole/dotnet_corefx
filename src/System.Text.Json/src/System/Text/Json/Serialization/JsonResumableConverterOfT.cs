@@ -33,7 +33,7 @@ namespace System.Text.Json.Serialization
             }
 
             WriteStack state = default;
-            state.Current.Initialize(typeof(T), options, ref state);
+            state.Current.InitializeRoot(typeof(T), options);
             state.Current.CurrentValue = value;
 
             TryWrite(writer, value, options, ref state);

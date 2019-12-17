@@ -15,17 +15,16 @@ namespace System.Text.Json.Serialization.Converters
             // Read StartObject.
             if (!state.Current.ProcessedStartToken)
             {
-                state.Current.ProcessedStartToken = true;
-
                 if (reader.TokenType != JsonTokenType.StartObject)
                 {
                     ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
                 }
 
+                state.Current.ProcessedStartToken = true;
                 CreateCollection(ref state);
             }
 
-            JsonConverter<TValue> elementConverter = (JsonConverter<TValue>)state.Current.JsonClassInfo.ElementClassInfo.PolicyProperty.ConverterBase;
+            JsonConverter<TValue> elementConverter = GetElementConverter(ref state);
 
             while (true)
             {
@@ -114,6 +113,17 @@ namespace System.Text.Json.Serialization.Converters
         }
 
         protected abstract void Add(TValue value, JsonSerializerOptions options, ref ReadStack state);
+
+        protected static JsonConverter<TValue> GetElementConverter(ref ReadStack state)
+        {
+            JsonConverter<TValue> converter = state.Current.JsonClassInfo.ElementClassInfo?.PolicyProperty.ConverterBase as JsonConverter<TValue>;
+            if (converter == null)
+            {
+                state.Current.JsonPropertyInfo.ThrowCollectionNotSupportedException();
+            }
+
+            return converter;
+        }
 
         protected JsonConverter<TValue> GetValueConverter(ref WriteStack state)
         {

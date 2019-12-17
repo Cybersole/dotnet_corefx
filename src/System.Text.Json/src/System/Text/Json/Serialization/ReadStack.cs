@@ -53,6 +53,8 @@ namespace System.Text.Json
             _count++;
         }
 
+        public bool IsContinuation => _continuationCount != 0;
+
         public void Push(JsonPropertyInfo jsonPropertyInfo)
         {
             if (_continuationCount == 0)

@@ -27,12 +27,24 @@ namespace System.Text.Json
 
                 JsonPropertyInfo jsonPropertyInfo = state.Current.JsonClassInfo.PolicyProperty;
                 JsonConverter converter = jsonPropertyInfo.ConverterBase;
-
-                if (!converter.SingleValueReadWithReadAhead(ref reader, ref state))
+                if (state.IsContinuation)
                 {
-                    // Read more data until we have the full element.
-                    state.BytesConsumed += reader.BytesConsumed;
-                    return;
+                    // If a continuation, continue to read ahead here to avoid having to build and
+                    // then tear down the call stack if there is more than one buffer fetch necessary.
+                    if (!JsonConverter.DoSingleValueReadWithReadAhead(ref reader, ref state))
+                    {
+                        state.BytesConsumed += reader.BytesConsumed;
+                        return;
+                    }
+                }
+                else
+                {
+                    if (!converter.SingleValueReadWithReadAhead(ref reader, ref state))
+                    {
+                        // Read more data until we have the full element.
+                        state.BytesConsumed += reader.BytesConsumed;
+                        return;
+                    }
                 }
 
                 value = null;

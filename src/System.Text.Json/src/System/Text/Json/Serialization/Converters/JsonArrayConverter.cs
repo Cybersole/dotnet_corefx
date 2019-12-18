@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace System.Text.Json.Serialization.Converters
 {
-    internal sealed class JsonEnumerableConverter<TCollection, TElement> : JsonIEnumerableDefaultConverter<TCollection, TElement> where TCollection: IEnumerable
+    internal sealed class JsonDefaultArrayConverter<TCollection, TElement> : JsonIEnumerableDefaultConverter<TCollection, TElement> where TCollection: IEnumerable
     {
         protected override void CreateCollection(ref ReadStack state)
         {
@@ -16,8 +16,8 @@ namespace System.Text.Json.Serialization.Converters
 
         protected override void ConvertCollection(ref ReadStack state)
         {
-            IEnumerable array = JsonArrayConverter.CreateFromList(ref state, (IList)state.Current.ReturnValue);
-            state.Current.ReturnValue = array;
+            List<TElement> list = (List<TElement>)state.Current.ReturnValue;
+            state.Current.ReturnValue = list.ToArray();
         }
 
         protected override void Add(TElement value, ref ReadStack state)
@@ -50,37 +50,6 @@ namespace System.Text.Json.Serialization.Converters
             }
 
             return true;
-        }
-    }
-
-    internal static class JsonArrayConverter
-    {
-        internal static IEnumerable CreateFromList(ref ReadStack state, IList sourceList)
-        {
-            Type elementType = state.Current.GetElementType();
-
-            Array array;
-
-            if (sourceList.Count > 0 && sourceList[0] is Array probe)
-            {
-                array = Array.CreateInstance(probe.GetType(), sourceList.Count);
-
-                int i = 0;
-                foreach (IList child in sourceList)
-                {
-                    if (child is Array childArray)
-                    {
-                        array.SetValue(childArray, i++);
-                    }
-                }
-            }
-            else
-            {
-                array = Array.CreateInstance(elementType, sourceList.Count);
-                sourceList.CopyTo(array, 0);
-            }
-
-            return array;
         }
     }
 }

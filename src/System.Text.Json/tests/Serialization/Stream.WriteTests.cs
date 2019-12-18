@@ -41,7 +41,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal("null", value);
         }
 
-        [Fact(Skip = "todo: fix this test")]
+        [Fact]
         public static async Task RoundTripAsync()
         {
             byte[] buffer;
@@ -182,7 +182,7 @@ namespace System.Text.Json.Serialization.Tests
             public virtual string WebSite { get; set; }
         }
 
-        [Theory]
+        [Theory(Skip="todo:fix this test")]
         [InlineData(0)]
         [InlineData(10)]
         [InlineData(1000)]

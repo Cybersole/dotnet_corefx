@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Text.Json.Serialization;
-
 namespace System.Text.Json
 {
     public static partial class JsonSerializer
@@ -19,16 +17,19 @@ namespace System.Text.Json
         {
             try
             {
-                JsonPropertyInfo jsonPropertyInfo = state.Current.JsonPropertyInfo;
+                JsonPropertyInfo jsonPropertyInfo = state.Current.JsonClassInfo.PolicyProperty;
 
                 object value = state.Current.CurrentValue;
 
                 if (jsonPropertyInfo.ConverterBase.TryWriteAsObject(writer, value, options, ref state))
                 {
+                    state.Current.CurrentValue = value;
                     return true;
                 }
-
-                state.Current.CurrentValue = value;
+                else
+                {
+                    state.Current.CurrentValue = value;
+                }
             }
             catch (InvalidOperationException ex) when (ex.Source == ThrowHelper.ExceptionSourceValueToRethrowAsJsonException)
             {
@@ -40,7 +41,7 @@ namespace System.Text.Json
                 throw;
             }
 
-            return true;
+            return false;
         }
     }
 }

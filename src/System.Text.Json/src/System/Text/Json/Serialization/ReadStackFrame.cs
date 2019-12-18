@@ -75,16 +75,6 @@ namespace System.Text.Json
             return (JsonClassInfo.ClassType & classTypes) != 0;
         }
 
-        /// <summary>
-        /// Is the current property of the provided <paramref name="classTypes"/>.
-        /// </summary>
-        public bool IsProcessingProperty(ClassType classTypes)
-        {
-            return JsonPropertyInfo != null &&
-                !JsonPropertyInfo.IsPropertyPolicy &&
-                (JsonPropertyInfo.ClassType & classTypes) != 0;
-        }
-
         public void InitializeRoot(Type type, JsonSerializerOptions options)
         {
             JsonClassInfo = options.GetOrAddClass(type);
@@ -146,9 +136,6 @@ namespace System.Text.Json
             return JsonPropertyInfo.RuntimePropertyType;
         }
 
-        public bool SkipProperty =>
-            JsonPropertyInfo != null && // todo: is this LOC needed?
-            JsonPropertyInfo.IsPropertyPolicy == false && // todo: is this LOC needed?
-            JsonPropertyInfo.ShouldDeserialize == false;
+        public bool SkipProperty => JsonPropertyInfo.ShouldDeserialize == false;
     }
 }

@@ -45,10 +45,7 @@ namespace System.Text.Json.Serialization.Converters
 
             while (enumerator.MoveNext())
             {
-                object element = enumerator.Current;
-                //JsonConverter converter = options.GetElementConverter(element?.GetType(), ref state);
-
-                if (!converter.TryWriteAsObject(writer, element, options, ref state))
+                if (!converter.TryWriteAsObject(writer, enumerator.Current, options, ref state))
                 {
                     state.Current.CollectionEnumerator = enumerator;
                     return false;

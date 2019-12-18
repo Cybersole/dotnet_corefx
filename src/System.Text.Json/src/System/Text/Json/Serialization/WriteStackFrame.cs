@@ -72,16 +72,6 @@ namespace System.Text.Json
             ProcessedPropertyValue = false;
         }
 
-        public void EndDictionary()
-        {
-            CollectionEnumerator = null;
-        }
-
-        public void EndArray()
-        {
-            CollectionEnumerator = null;
-        }
-
         // AggressiveInlining used although a large method it is only called from one location and is on a hot path.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool NextProperty()

@@ -29,15 +29,28 @@ namespace System.Text.Json.Serialization.Converters
                 enumerator = (Dictionary<string, TValue>.Enumerator)state.Current.CollectionEnumerator;
             }
 
-            while (enumerator.MoveNext())
+            if (converter.ClassType == ClassType.Value && converter.IsInternalConverter)
             {
-                TValue element = enumerator.Current.Value;
-                string key = GetKeyName(enumerator.Current.Key, ref state, options);
-                writer.WritePropertyName(key);
-                if (!converter.TryWrite(writer, element, options, ref state))
+                // Fast path that avoids validation and extra indirection.
+                while (enumerator.MoveNext())
                 {
-                    state.Current.CollectionEnumerator = enumerator;
-                    return false;
+                    string key = GetKeyName(enumerator.Current.Key, ref state, options);
+                    writer.WritePropertyName(key);
+                    converter.Write(writer, enumerator.Current.Value, options);
+                }
+            }
+            else
+            {
+                while (enumerator.MoveNext())
+                {
+                    TValue element = enumerator.Current.Value;
+                    string key = GetKeyName(enumerator.Current.Key, ref state, options);
+                    writer.WritePropertyName(key);
+                    if (!converter.TryWrite(writer, element, options, ref state))
+                    {
+                        state.Current.CollectionEnumerator = enumerator;
+                        return false;
+                    }
                 }
             }
 

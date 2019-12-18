@@ -44,9 +44,10 @@ namespace System.Text.Json.Serialization.Converters
 
             while (enumerator.MoveNext())
             {
-                TValue element = enumerator.Current.Value;
                 string key = GetKeyName(enumerator.Current.Key, ref state, options);
                 writer.WritePropertyName(key);
+
+                TValue element = enumerator.Current.Value;
                 if (!converter.TryWrite(writer, element, options, ref state))
                 {
                     state.Current.CollectionEnumerator = enumerator;

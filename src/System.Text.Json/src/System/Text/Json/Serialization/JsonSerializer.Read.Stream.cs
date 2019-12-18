@@ -86,6 +86,9 @@ namespace System.Text.Json
             ReadStack state = default;
             state.Current.InitializeRoot(returnType, options);
 
+            // Ensures converters support contination due to having to re-populate the buffer from a Stream.
+            state.SupportContinuation = true;
+
             var readerState = new JsonReaderState(options.GetReaderOptions());
 
             // todo: switch to ArrayBuffer implementation to handle and simplify the allocs?

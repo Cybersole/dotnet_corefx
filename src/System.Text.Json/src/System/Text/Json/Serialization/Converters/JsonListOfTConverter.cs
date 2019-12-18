@@ -32,13 +32,24 @@ namespace System.Text.Json.Serialization.Converters
                 enumerator = (List<TElement>.Enumerator)state.Current.CollectionEnumerator;
             }
 
-            while (enumerator.MoveNext())
+            if (elementConverter.ClassType == ClassType.Value && elementConverter.IsInternalConverter)
             {
-                TElement element = enumerator.Current;
-                if (!elementConverter.TryWrite(writer, element, options, ref state))
+                // Fast path that avoids validation and extra indirection.
+                while (enumerator.MoveNext())
                 {
-                    state.Current.CollectionEnumerator = enumerator;
-                    return false;
+                    elementConverter.Write(writer, enumerator.Current, options);
+                }
+            }
+            else
+            {
+                while (enumerator.MoveNext())
+                {
+                    TElement element = enumerator.Current;
+                    if (!elementConverter.TryWrite(writer, element, options, ref state))
+                    {
+                        state.Current.CollectionEnumerator = enumerator;
+                        return false;
+                    }
                 }
             }
 

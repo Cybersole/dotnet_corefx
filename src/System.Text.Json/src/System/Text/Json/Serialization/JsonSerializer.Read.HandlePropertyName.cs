@@ -13,7 +13,7 @@ namespace System.Text.Json
     {
         // AggressiveInlining used although a large method it is only called from one locations and is on a hot path.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void HandlePropertyName(
+        internal static bool HandlePropertyName(
             ref Utf8JsonReader reader,
             JsonSerializerOptions options,
             ref ReadStack state)
@@ -29,10 +29,12 @@ namespace System.Text.Json
             }
 
             JsonPropertyInfo jsonPropertyInfo = state.Current.JsonClassInfo.GetProperty(propertyName, ref state.Current);
+
+            // Increment the PropertyIndex so JsonClassInfo.GetProperty() starts with the next property.
+            state.Current.PropertyIndex++;
+
             if (jsonPropertyInfo == JsonPropertyInfo.s_missingProperty)
             {
-                state.Current.UseExtensionProperty = true;
-
                 JsonPropertyInfo dataExtProperty = state.Current.JsonClassInfo.DataExtensionProperty;
                 if (dataExtProperty == null)
                 {
@@ -46,6 +48,8 @@ namespace System.Text.Json
 
                     CreateDataExtensionProperty(dataExtProperty, ref state);
                 }
+
+                return true;
             }
             else
             {
@@ -72,10 +76,9 @@ namespace System.Text.Json
                         state.Current.JsonPropertyInfo.JsonPropertyName = propertyNameArray;
                     }
                 }
-            }
 
-            // Increment the PropertyIndex so JsonClassInfo.GetProperty() starts with the next property.
-            state.Current.PropertyIndex++;
+                return false;
+            }
         }
 
         internal static void CreateDataExtensionProperty(

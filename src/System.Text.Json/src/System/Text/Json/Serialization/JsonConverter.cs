@@ -66,7 +66,6 @@ namespace System.Text.Json.Serialization
 
             state.Push(jsonPropertyInfo);
             state.Current.CurrentValue = nextValue;
-
         }
 
         // For polymorphic cases, the concrete type to create.
@@ -187,7 +186,7 @@ namespace System.Text.Json.Serialization
                 success = OnTryWriteAsObject(writer, value, options, ref state);
 
 #if DEBUG
-                if (success)
+                if (ClassType == ClassType.Value && success)
                 {
                     VerifyWrite(originalDepth, writer);
                 }
@@ -197,7 +196,7 @@ namespace System.Text.Json.Serialization
             {
                 int originalDepth = writer.CurrentDepth;
                 success = OnTryWriteAsObject(writer, value, options, ref state);
-                if (success)
+                if (ClassType == ClassType.Value && success)
                 {
                     VerifyWrite(originalDepth, writer);
                 }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Runtime.CompilerServices;
+
 namespace System.Text.Json.Serialization.Converters
 {
     internal abstract class JsonDictionaryDefaultConverter<TCollection, TValue> : JsonDictionaryConverter<TCollection>
@@ -12,80 +14,152 @@ namespace System.Text.Json.Serialization.Converters
 
         internal override sealed bool OnTryRead(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref TCollection value)
         {
-            // Read StartObject.
-            if (!state.Current.ProcessedStartToken)
+            if (!state.SupportContinuation)
             {
+                // Fast path that avoids maintaining state variables.
+
+                // Read StartObject.
                 if (reader.TokenType != JsonTokenType.StartObject)
                 {
                     ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
                 }
 
-                state.Current.ProcessedStartToken = true;
                 CreateCollection(ref state);
-            }
 
-            JsonConverter<TValue> elementConverter = GetElementConverter(ref state);
+                JsonConverter<TValue> elementConverter = GetElementConverter(ref state);
 
-            while (true)
-            {
-                if (state.Current.ProcessedReadName == false)
+                if (elementConverter.ClassType == ClassType.Value && elementConverter.IsInternalConverter)
                 {
-                    state.Current.ProcessedReadName = true;
-
-                    if (!reader.Read())
+                    // Fast path that avoids validation and extra indirection.
+                    while (true)
                     {
-                        return false;
+                        // Read the key name.
+                        reader.Read();
+
+                        if (reader.TokenType == JsonTokenType.EndObject)
+                        {
+                            break;
+                        }
+
+                        if (reader.TokenType != JsonTokenType.PropertyName)
+                        {
+                            ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
+                        }
+
+                        state.Current.KeyName = reader.GetString();
+
+                        // Read the value.
+                        reader.Read();
+
+                        TValue element = elementConverter.Read(ref reader, _elementType, options);
+                        Add(element, options, ref state);
                     }
                 }
-
-                // Determine the property.
-                if (state.Current.ProcessedName == false)
+                else
                 {
-                    if (reader.TokenType == JsonTokenType.EndObject)
+                    while (true)
                     {
-                        break;
-                    }
+                        // Read the key name.
+                        reader.Read();
 
-                    if (reader.TokenType != JsonTokenType.PropertyName)
+                        if (reader.TokenType == JsonTokenType.EndObject)
+                        {
+                            break;
+                        }
+
+                        if (reader.TokenType != JsonTokenType.PropertyName)
+                        {
+                            ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
+                        }
+
+                        state.Current.KeyName = reader.GetString();
+
+                        // Read the value.
+                        reader.Read();
+
+                        TValue element = default;
+                        elementConverter.TryRead(ref reader, _elementType, options, ref state, ref element);
+
+                        Add(element, options, ref state);
+                    }
+                }
+            }
+            else
+            {
+                // Read StartObject.
+                if (!state.Current.ProcessedStartToken)
+                {
+                    if (reader.TokenType != JsonTokenType.StartObject)
                     {
                         ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
                     }
 
-                    state.Current.ProcessedName = true;
-                    state.Current.KeyName = reader.GetString();
+                    state.Current.ProcessedStartToken = true;
+                    CreateCollection(ref state);
                 }
 
-                if (state.Current.ProcessedReadValue == false)
+                JsonConverter<TValue> elementConverter = GetElementConverter(ref state);
+
+                while (true)
                 {
-                    state.Current.ProcessedReadValue = true;
-
-                    if (!SingleValueReadWithReadAhead(elementConverter.ClassType, ref reader, ref state))
+                    if (state.Current.ProcessedReadName == false)
                     {
-                        return false;
-                    }
-                }
+                        state.Current.ProcessedReadName = true;
 
-                if (state.Current.ProcessedValue == false)
-                {
-                    // Obtain the CLR value from the JSON.
-                    TValue element = default;
-
-                    bool success = elementConverter.TryRead(ref reader, typeof(TValue), options, ref state, ref element);
-                    if (!success)
-                    {
-                        return false;
+                        // Read the key name.
+                        if (!reader.Read())
+                        {
+                            return false;
+                        }
                     }
 
-                    Add(element, options, ref state);
-                    state.Current.ProcessedValue = true;
-                    state.Current.EndElement();
+                    // Determine the property.
+                    if (state.Current.ProcessedName == false)
+                    {
+                        if (reader.TokenType == JsonTokenType.EndObject)
+                        {
+                            break;
+                        }
+
+                        if (reader.TokenType != JsonTokenType.PropertyName)
+                        {
+                            ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
+                        }
+
+                        state.Current.ProcessedName = true;
+                        state.Current.KeyName = reader.GetString();
+                    }
+
+                    if (state.Current.ProcessedReadValue == false)
+                    {
+                        state.Current.ProcessedReadValue = true;
+
+                        if (!SingleValueReadWithReadAhead(elementConverter.ClassType, ref reader, ref state))
+                        {
+                            return false;
+                        }
+                    }
+
+                    if (state.Current.ProcessedValue == false)
+                    {
+                        TValue element = default;
+
+                        // Read the value.
+                        bool success = elementConverter.TryRead(ref reader, _elementType, options, ref state, ref element);
+                        if (!success)
+                        {
+                            return false;
+                        }
+
+                        Add(element, options, ref state);
+                        state.Current.ProcessedValue = true;
+                        state.Current.EndElement();
+                    }
                 }
             }
 
             ConvertCollection(ref state);
-
             value = (TCollection)state.Current.ReturnValue;
-
             return true;
         }
 
@@ -136,6 +210,7 @@ namespace System.Text.Json.Serialization.Converters
             return converter;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected string GetKeyName(string key, ref WriteStack state, JsonSerializerOptions options)
         {
             if (options.DictionaryKeyPolicy != null && !state.Current.IgnoreDictionaryKeyPolicy)

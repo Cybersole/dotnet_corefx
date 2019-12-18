@@ -76,30 +76,7 @@ namespace System.Text.Json.Serialization
         // Provide a default implementation for value converters.
         internal virtual bool OnTryRead(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref T value)
         {
-            if (IsInternalConverter)
-            {
-#if DEBUG
-                JsonTokenType originalTokenType = reader.TokenType;
-                int originalDepth = reader.CurrentDepth;
-                long originalBytesConsumed = reader.BytesConsumed;
-#endif
-
-                value = Read(ref reader, typeToConvert, options);
-#if DEBUG
-                VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
-#endif
-            }
-            else
-            {
-                JsonTokenType originalTokenType = reader.TokenType;
-                int originalDepth = reader.CurrentDepth;
-                long originalBytesConsumed = reader.BytesConsumed;
-
-                value = Read(ref reader, typeToConvert, options);
-
-                VerifyRead(originalTokenType, originalDepth, originalBytesConsumed, ref reader);
-            }
-
+            value = Read(ref reader, typeToConvert, options);
             return true;
         }
 
@@ -228,14 +205,24 @@ namespace System.Text.Json.Serialization
                 success = OnTryWrite(writer, value, options, ref state);
 
 #if DEBUG
-                VerifyWrite(originalDepth, writer);
+                // Todo: validate objects and arrays as well (need to preserve state due to buffering)
+                if (ClassType == ClassType.Value && success)
+                {
+                    VerifyWrite(originalDepth, writer);
+                }
 #endif
             }
             else
             {
                 int originalDepth = writer.CurrentDepth;
+
                 success = OnTryWrite(writer, value, options, ref state);
-                VerifyWrite(originalDepth, writer);
+
+                // Todo: validate objects and arrays as well (need to preserve state due to buffering)
+                if (ClassType == ClassType.Value && success)
+                {
+                    VerifyWrite(originalDepth, writer);
+                }
             }
 
             if (ClassType != ClassType.Value)
@@ -260,7 +247,10 @@ namespace System.Text.Json.Serialization
                 ThrowHelper.ThrowInvalidOperationException_SerializerCycleDetected(options.MaxDepth);
             }
 
-            Push(ref state, value);
+            if (ClassType != ClassType.Value)
+            {
+                Push(ref state, value);
+            }
 
             // Ignore the naming policy for extension data.
             state.Current.IgnoreDictionaryKeyPolicy = true;
@@ -279,14 +269,23 @@ namespace System.Text.Json.Serialization
                 success = dictionaryConverter.OnWriteResume(writer, value, options, ref state);
 
 #if DEBUG
-                VerifyWrite(originalDepth, writer);
+                // Todo: validate objects and arrays as well (need to preserve state due to buffering)
+                if (ClassType == ClassType.Value && success)
+                {
+                    VerifyWrite(originalDepth, writer);
+                }
 #endif
             }
             else
             {
                 int originalDepth = writer.CurrentDepth;
                 success = dictionaryConverter.OnWriteResume(writer, value, options, ref state);
-                VerifyWrite(originalDepth, writer);
+
+                // Todo: validate objects and arrays as well (need to preserve state due to buffering)
+                if (ClassType == ClassType.Value && success)
+                {
+                    VerifyWrite(originalDepth, writer);
+                }
             }
 
             if (ClassType != ClassType.Value)

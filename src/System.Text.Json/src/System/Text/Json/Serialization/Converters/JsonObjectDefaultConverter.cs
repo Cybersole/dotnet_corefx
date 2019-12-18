@@ -8,44 +8,29 @@ namespace System.Text.Json.Serialization.Converters
     {
         internal override bool OnTryRead(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options, ref ReadStack state, ref T value)
         {
-            // Read StartObject.
-            if (!state.Current.ProcessedStartToken)
+            object obj;
+
+            if (!state.SupportContinuation)
             {
                 if (reader.TokenType != JsonTokenType.StartObject)
                 {
                     ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
                 }
 
-                state.Current.ProcessedStartToken = true;
-            }
-
-            // Create the object.
-            if (state.Current.ReturnValue == null)
-            {
                 if (state.Current.JsonClassInfo.CreateObject == null)
                 {
                     ThrowHelper.ThrowNotSupportedException_DeserializeCreateObjectDelegateIsNull(state.Current.JsonClassInfo.Type);
                 }
 
-                state.Current.ReturnValue = state.Current.JsonClassInfo.CreateObject();
-            }
+                obj = state.Current.JsonClassInfo.CreateObject();
+                state.Current.ReturnValue = obj;
 
-            // Read all properties.
-            while (true)
-            {
-                // Determine the property.
-                if (state.Current.ProcessedReadName == false)
+                // Read all properties.
+                while (true)
                 {
-                    state.Current.ProcessedReadName = true;
+                    // Lookup the property.
+                    reader.Read();
 
-                    if (!reader.Read())
-                    {
-                        return false;
-                    }
-                }
-
-                if (state.Current.ProcessedName == false)
-                {
                     if (reader.TokenType == JsonTokenType.EndObject)
                     {
                         break;
@@ -56,70 +41,143 @@ namespace System.Text.Json.Serialization.Converters
                         ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
                     }
 
-                    state.Current.ProcessedName = true;
-                    JsonSerializer.HandlePropertyName(ref reader, options, ref state);
-                }
+                    bool useExtensionProperty = JsonSerializer.HandlePropertyName(ref reader, options, ref state);
 
-                JsonPropertyInfo jsonPropertyInfo = state.Current.JsonPropertyInfo;
-
-                if (state.Current.ProcessedReadValue == false)
-                {
+                    // Skip the property if not found.
                     if (state.Current.SkipProperty)
                     {
-                        if (!reader.TrySkip())
-                        {
-                            return false;
-                        }
-
+                        reader.TrySkip();
                         state.Current.EndProperty();
                         continue;
                     }
 
-                    state.Current.ProcessedReadValue = true;
+                    // Set the property value.
+                    reader.Read();
 
-                    if (!state.Current.UseExtensionProperty)
+                    if (!useExtensionProperty)
                     {
-                        if (!SingleValueReadWithReadAhead(jsonPropertyInfo.ConverterBase.ClassType, ref reader, ref state))
-                        {
-                            return false;
-                        }
+                        state.Current.JsonPropertyInfo.ReadJsonAndSetMember(obj, ref state, ref reader);
                     }
                     else
                     {
-                        // The actual converter is JsonElement, so force a read-ahead.
-                        if (!SingleValueReadWithReadAhead(ClassType.Value, ref reader, ref state))
+                        state.Current.JsonPropertyInfo.ReadJsonAndAddExtensionProperty(obj, ref state, ref reader);
+                    }
+                }
+            }
+            else
+            {
+                // Read StartObject.
+                if (!state.Current.ProcessedStartToken)
+                {
+                    if (reader.TokenType != JsonTokenType.StartObject)
+                    {
+                        ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
+                    }
+
+                    state.Current.ProcessedStartToken = true;
+                }
+
+                // Create the object.
+                if (state.Current.ReturnValue == null)
+                {
+                    if (state.Current.JsonClassInfo.CreateObject == null)
+                    {
+                        ThrowHelper.ThrowNotSupportedException_DeserializeCreateObjectDelegateIsNull(state.Current.JsonClassInfo.Type);
+                    }
+
+                    state.Current.ReturnValue = state.Current.JsonClassInfo.CreateObject();
+                }
+
+                obj = state.Current.ReturnValue;
+
+                // Read all properties.
+                while (true)
+                {
+                    // Determine the property.
+                    if (state.Current.ProcessedReadName == false)
+                    {
+                        state.Current.ProcessedReadName = true;
+
+                        if (!reader.Read())
                         {
                             return false;
                         }
                     }
-                }
 
-                if (state.Current.ProcessedValue == false)
-                {
-                    // Obtain the CLR value from the JSON and set the member.
-                    object obj = state.Current.ReturnValue;
-
-                    if (!state.Current.UseExtensionProperty)
+                    if (state.Current.ProcessedName == false)
                     {
-                        if (!jsonPropertyInfo.ReadJsonAndSetMember(obj, ref state, ref reader))
+                        if (reader.TokenType == JsonTokenType.EndObject)
                         {
-                            return false;
+                            break;
+                        }
+
+                        if (reader.TokenType != JsonTokenType.PropertyName)
+                        {
+                            ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
+                        }
+
+                        state.Current.ProcessedName = true;
+                        if (JsonSerializer.HandlePropertyName(ref reader, options, ref state))
+                        {
+                            state.Current.UseExtensionProperty = true;
+                        }
+                    }
+
+                    JsonPropertyInfo jsonPropertyInfo = state.Current.JsonPropertyInfo;
+
+                    if (state.Current.ProcessedReadValue == false)
+                    {
+                        if (state.Current.SkipProperty)
+                        {
+                            if (!reader.TrySkip())
+                            {
+                                return false;
+                            }
+
+                            state.Current.EndProperty();
+                            continue;
+                        }
+
+                        state.Current.ProcessedReadValue = true;
+
+                        if (!state.Current.UseExtensionProperty)
+                        {
+                            if (!SingleValueReadWithReadAhead(jsonPropertyInfo.ConverterBase.ClassType, ref reader, ref state))
+                            {
+                                return false;
+                            }
                         }
                         else
                         {
-                            value = (T)obj;
-                        }
-                    }
-                    else
-                    {
-                        if (!jsonPropertyInfo.ReadJsonAndAddExtensionProperty(obj, ref state, ref reader))
-                        {
-                            // No need to set 'value' here since JsonElement must be read in full.
-                            return false;
+                            // The actual converter is JsonElement, so force a read-ahead.
+                            if (!SingleValueReadWithReadAhead(ClassType.Value, ref reader, ref state))
+                            {
+                                return false;
+                            }
                         }
                     }
 
-                    state.Current.EndProperty();
+                    if (state.Current.ProcessedValue == false)
+                    {
+                        // Obtain the CLR value from the JSON and set the member.
+                        if (!state.Current.UseExtensionProperty)
+                        {
+                            if (!jsonPropertyInfo.ReadJsonAndSetMember(obj, ref state, ref reader))
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!jsonPropertyInfo.ReadJsonAndAddExtensionProperty(obj, ref state, ref reader))
+                            {
+                                // No need to set 'value' here since JsonElement must be read in full.
+                                return false;
+                            }
+                        }
+
+                        state.Current.EndProperty();
+                    }
                 }
             }
 
@@ -129,7 +187,7 @@ namespace System.Text.Json.Serialization.Converters
                 state.Current.JsonClassInfo.UpdateSortedPropertyCache(ref state.Current);
             }
 
-            value = (T)state.Current.ReturnValue;
+            value = (T)obj;
 
             return true;
         }
@@ -149,7 +207,6 @@ namespace System.Text.Json.Serialization.Converters
             }
 
             state.Current.CurrentValue = value;
-
 
             JsonPropertyInfo dataExtensionProperty = state.Current.JsonClassInfo.DataExtensionProperty;
 

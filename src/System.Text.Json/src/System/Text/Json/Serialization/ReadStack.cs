@@ -256,5 +256,10 @@ namespace System.Text.Json
         /// Internal flag to let us know that we need to read ahead in the inner read loop.
         /// </summary>
         internal bool ReadAhead;
+
+        /// <summary>
+        /// Internal flag to let us know that we need to read ahead in the inner read loop.
+        /// </summary>
+        internal bool SupportContinuation;
     }
 }

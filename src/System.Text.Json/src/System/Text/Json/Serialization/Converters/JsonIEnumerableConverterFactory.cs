@@ -21,7 +21,7 @@ namespace System.Text.Json.Serialization.Converters
         }
 
         [PreserveDependency(".ctor", "System.Text.Json.Serialization.Converters.JsonArrayConverter`2")]
-        [PreserveDependency(".ctor", "System.Text.Json.Serialization.Converters.JsonEnumerableConverter`2")]
+        [PreserveDependency(".ctor", "System.Text.Json.Serialization.Converters.JsonDefaultArrayConverter`2")]
         [PreserveDependency(".ctor", "System.Text.Json.Serialization.Converters.JsonIDictionaryOfStringTValueConverter`2")]
         [PreserveDependency(".ctor", "System.Text.Json.Serialization.Converters.JsonDictionaryOfStringTValueConverter`2")]
         [PreserveDependency(".ctor", "System.Text.Json.Serialization.Converters.JsonIEnumerableOfTConverter`2")]
@@ -44,7 +44,7 @@ namespace System.Text.Json.Serialization.Converters
                     return null;
                 }
 
-                converterType = typeof(JsonEnumerableConverter<,>);
+                converterType = typeof(JsonDefaultArrayConverter<,>);
                 elementType = typeToConvert.GetElementType();
             }
             // List<>
